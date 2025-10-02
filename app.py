@@ -49,13 +49,13 @@ st.markdown("""
 <style>
     .main-header {
         font-size: 2.5rem;
-        color: blue;
+        color: red;
         text-align: center;
         margin-bottom: 2rem;
     }
     .section-header {
         font-size: 1.8rem;
-        color: #2e86ab;
+        color:blue ;
         border-bottom: 2px solid #2e86ab;
         padding-bottom: 0.5rem;
         margin-top: 2rem;
