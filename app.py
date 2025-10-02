@@ -11,7 +11,8 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
-
+# SOLUCIÓN: Desactivar estadísticas para evitar errores de permisos
+st._config.set_option('browser.gatherUsageStats', False)
 # Estilos CSS personalizados
 st.markdown("""
 <style>
