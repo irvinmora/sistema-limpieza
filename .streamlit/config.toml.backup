@@ -1,0 +1,12 @@
+# Eliminar el archivo config.toml problemático
+rm .streamlit/config.toml
+
+# Crear uno nuevo con el contenido correcto
+echo '[server]
+headless = true
+address = "0.0.0.0"
+port = 7860
+
+[browser]
+serverAddress = "0.0.0.0"
+gatherUsageStats = false' > .streamlit/config.toml
