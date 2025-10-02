@@ -16,58 +16,80 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Estilos CSS personalizados + RESPONSIVE
+# ================= CSS RESPONSIVO ================= #
 st.markdown("""
 <style>
-    /* Estilo general */
+/* General */
+html, body, [class*="css"] {
+    font-size: 15px;
+    line-height: 1.4;
+}
+
+/* Encabezados */
+.main-header {
+    font-size: 2rem !important;
+    color: #1f77b4;
+    text-align: center;
+    margin-bottom: 1rem;
+}
+.section-header {
+    font-size: 1.3rem !important;
+    color: #2e86ab;
+    border-bottom: 2px solid #2e86ab;
+    padding-bottom: 0.3rem;
+    margin-top: 1rem;
+}
+
+/* Inputs y selects a ancho completo */
+div[data-baseweb="input"] > div,
+div[data-baseweb="select"] > div,
+div[data-baseweb="textarea"] > div {
+    width: 100% !important;
+    min-width: 100% !important;
+}
+.stTextInput, .stSelectbox, .stDateInput, .stTextArea {
+    width: 100% !important;
+}
+
+/* Botones */
+.stButton > button, .stDownloadButton > button, button[kind="primary"], button[kind="secondary"] {
+    width: 100% !important;
+    padding: 0.8rem !important;
+    font-size: 1rem !important;
+    border-radius: 8px !important;
+}
+
+/* Dataframes scrollables */
+.dataframe {
+    overflow-x: auto !important;
+    display: block !important;
+    max-width: 100% !important;
+    font-size: 0.85rem !important;
+}
+
+/* Métricas */
+[data-testid="stMetricValue"] {
+    font-size: 1.1rem !important;
+}
+[data-testid="stMetricLabel"] {
+    font-size: 0.85rem !important;
+}
+
+/* Responsive en móviles */
+@media (max-width: 768px) {
+    html, body, [class*="css"] {
+        font-size: 14px !important;
+    }
     .main-header {
-        font-size: 2.2rem;
-        color: #1f77b4;
-        text-align: center;
-        margin-bottom: 1rem;
+        font-size: 1.5rem !important;
     }
     .section-header {
-        font-size: 1.5rem;
-        color: #2e86ab;
-        border-bottom: 2px solid #2e86ab;
-        padding-bottom: 0.3rem;
-        margin-top: 1.5rem;
+        font-size: 1.1rem !important;
     }
-    /* Mensajes personalizados */
-    .success-message, .warning-message {
-        padding: 0.8rem;
-        border-radius: 0.5rem;
-        margin-top: 0.5rem;
+    .stButton > button, .stDownloadButton > button {
+        font-size: 0.95rem !important;
     }
-    .success-message {
-        background-color: #d4edda;
-        border: 1px solid #c3e6cb;
-        color: #155724;
-    }
-    .warning-message {
-        background-color: #fff3cd;
-        border: 1px solid #ffeaa7;
-        color: #856404;
-    }
-    /* Dataframes scrollables */
-    .scroll-table {
-        overflow-x: auto;
-    }
-    /* Estilos responsivos para pantallas pequeñas */
-    @media (max-width: 768px) {
-        .main-header {
-            font-size: 1.6rem;
-        }
-        .section-header {
-            font-size: 1.2rem;
-        }
-        .stButton button, .stDownloadButton button {
-            width: 100% !important;
-        }
-        .stTextInput, .stSelectbox, .stDateInput {
-            width: 100% !important;
-        }
-    }
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -81,7 +103,7 @@ except ImportError:
         st.error("PDF generator not available")
         return None
 
-# FUNCIONES CORREGIDAS PARA MANEJO DE DATOS
+# FUNCIONES DE MANEJO DE DATOS
 def load_data(filename):
     try:
         filepath = f"data/{filename}"
@@ -116,8 +138,7 @@ def initialize_session_state():
 def get_current_week_dates():
     today = date.today()
     start_of_week = today - pd.Timedelta(days=today.weekday())
-    week_dates = [start_of_week + pd.Timedelta(days=i) for i in range(5)]
-    return week_dates
+    return [start_of_week + pd.Timedelta(days=i) for i in range(5)]
 
 # Inicializar datos
 initialize_session_state()
@@ -125,7 +146,7 @@ initialize_session_state()
 # Encabezado principal
 st.markdown('<h1 class="main-header">🧹 Sistema de Registro de Limpieza</h1>', unsafe_allow_html=True)
 
-# Sidebar para navegación
+# Sidebar
 st.sidebar.title("Navegación")
 page = st.sidebar.radio("Selecciona una sección:", 
                        ["🏠 Inicio", "👥 Registro de Estudiantes", "📝 Registro de Limpieza", "📊 Historial de Limpieza"])
@@ -134,7 +155,6 @@ page = st.sidebar.radio("Selecciona una sección:",
 # Página de Inicio
 if page == "🏠 Inicio":
     st.markdown('<h2 class="section-header">Bienvenido</h2>', unsafe_allow_html=True)
-    
     col1, col2, col3 = st.columns([1,1,1])
     with col1:
         st.metric("Total Estudiantes", len(st.session_state.students))
@@ -167,15 +187,13 @@ if page == "🏠 Inicio":
                 })
         if week_summary:
             df_week = pd.DataFrame(week_summary)
-            st.markdown('<div class="scroll-table">', unsafe_allow_html=True)
             st.dataframe(df_week, use_container_width=True)
-            st.markdown('</div>', unsafe_allow_html=True)
         else:
             st.info("No hay registros de esta semana.")
     except Exception as e:
         st.error(f"Error al cargar resumen: {e}")
 
-# Página de Registro de Estudiantes
+# Registro de Estudiantes
 elif page == "👥 Registro de Estudiantes":
     st.markdown('<h2 class="section-header">Registro de Estudiantes</h2>', unsafe_allow_html=True)
     with st.form("student_form"):
@@ -203,13 +221,11 @@ elif page == "👥 Registro de Estudiantes":
     st.subheader("Lista de Estudiantes")
     if st.session_state.students:
         df = pd.DataFrame(st.session_state.students)
-        st.markdown('<div class="scroll-table">', unsafe_allow_html=True)
         st.dataframe(df[['nombre','id']], use_container_width=True)
-        st.markdown('</div>', unsafe_allow_html=True)
     else:
         st.info("Sin estudiantes registrados.")
 
-# Página de Registro de Limpieza
+# Registro de Limpieza
 elif page == "📝 Registro de Limpieza":
     st.markdown('<h2 class="section-header">Registro de Limpieza</h2>', unsafe_allow_html=True)
     with st.form("cleaning_form"):
@@ -240,7 +256,7 @@ elif page == "📝 Registro de Limpieza":
                 else:
                     st.error("❌ Error al guardar.")
 
-# Página de Historial
+# Historial
 elif page == "📊 Historial de Limpieza":
     st.markdown('<h2 class="section-header">Historial de Limpieza</h2>', unsafe_allow_html=True)
     filter_type = st.selectbox("Filtrar por tipo:", ["Todos", "Aula", "Baños"])
@@ -257,9 +273,7 @@ elif page == "📊 Historial de Limpieza":
         df=pd.DataFrame(filtered)
         df['Fecha']=pd.to_datetime(df['fecha']).dt.strftime('%d/%m/%Y')
         display_df=df[['Fecha','dia_semana','hora','estudiantes','tipo_limpieza']]
-        st.markdown('<div class="scroll-table">', unsafe_allow_html=True)
         st.dataframe(display_df, use_container_width=True)
-        st.markdown('</div>', unsafe_allow_html=True)
     else:
         st.info("No hay registros con los filtros seleccionados.")
 
