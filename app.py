@@ -44,42 +44,242 @@ except ImportError:
     except:
         PDF_AVAILABLE = False
 
-# Estilos CSS personalizados
+# Estilos CSS personalizados con fondo profesional
 st.markdown("""
 <style>
+    /* Fondo profesional con gradiente suave */
+    .stApp {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    
+    /* Contenedor principal con efecto glassmorphism */
+    .main-container {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(20px);
+        border-radius: 20px;
+        padding: 2rem;
+        margin: 1rem;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        border: 1px solid rgba(255,255,255,0.2);
+    }
+    
+    /* Sidebar profesional */
+    .css-1d391kg {
+        background: rgba(255, 255, 255, 0.9) !important;
+        backdrop-filter: blur(15px) !important;
+    }
+    
     .main-header {
-        font-size: 2.5rem;
-        color: #1f77b4;
+        font-size: 2.8rem;
+        font-weight: 700;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
         text-align: center;
         margin-bottom: 2rem;
+        padding: 1rem;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
+    
     .section-header {
         font-size: 1.8rem;
-        color: #2e86ab;
-        border-bottom: 2px solid #2e86ab;
-        padding-bottom: 0.5rem;
-        margin-top: 2rem;
+        color: #2c3e50;
+        border-bottom: 3px solid #3498db;
+        padding-bottom: 0.7rem;
+        margin: 2rem 0 1.5rem 0;
+        font-weight: 600;
     }
+    
+    /* Tarjetas de métricas modernas */
+    .metric-card {
+        background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+        padding: 1.5rem;
+        border-radius: 15px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        border-left: 5px solid #3498db;
+        text-align: center;
+        margin: 0.5rem;
+        transition: transform 0.3s ease;
+    }
+    
+    .metric-card:hover {
+        transform: translateY(-5px);
+    }
+    
+    .metric-card h3 {
+        color: #7f8c8d;
+        font-size: 0.9rem;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+    }
+    
+    .metric-card h2 {
+        color: #2c3e50;
+        font-size: 2.2rem;
+        margin: 0;
+        font-weight: 700;
+    }
+    
+    /* Botones modernos */
+    .stButton button {
+        background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+        color: white;
+        border: none;
+        padding: 0.75rem 2rem;
+        border-radius: 50px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        width: 100%;
+        box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
+    }
+    
+    .stButton button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(52, 152, 219, 0.4);
+        background: linear-gradient(135deg, #2980b9 0%, #3498db 100%);
+    }
+    
+    /* Botones secundarios */
+    .stButton button[kind="secondary"] {
+        background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);
+        box-shadow: 0 4px 15px rgba(149, 165, 166, 0.3);
+    }
+    
+    .stButton button[kind="secondary"]:hover {
+        background: linear-gradient(135deg, #7f8c8d 0%, #95a5a6 100%);
+        box-shadow: 0 8px 25px rgba(149, 165, 166, 0.4);
+    }
+    
+    /* Botones de éxito */
+    .stButton button:contains("Agregar"), 
+    .stButton button:contains("Guardar"), 
+    .stButton button:contains("Registrar") {
+        background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+        box-shadow: 0 4px 15px rgba(39, 174, 96, 0.3);
+    }
+    
+    /* Formularios */
+    .stForm {
+        background: rgba(255, 255, 255, 0.8);
+        padding: 2rem;
+        border-radius: 15px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        backdrop-filter: blur(10px);
+    }
+    
+    /* Mensajes de estado mejorados */
     .success-message {
-        padding: 1rem;
-        background-color: #d4edda;
-        border: 1px solid #c3e6cb;
-        border-radius: 0.5rem;
+        background: linear-gradient(135deg, #d4edda, #c3e6cb);
+        border: none;
+        border-radius: 10px;
         color: #155724;
+        padding: 1rem;
+        margin: 1rem 0;
+        box-shadow: 0 2px 10px rgba(39, 174, 96, 0.2);
     }
+    
     .warning-message {
-        padding: 1rem;
-        background-color: #fff3cd;
-        border: 1px solid #ffeaa7;
-        border-radius: 0.5rem;
+        background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+        border: none;
+        border-radius: 10px;
         color: #856404;
-    }
-    .error-message {
         padding: 1rem;
-        background-color: #f8d7da;
-        border: 1px solid #f5c6cb;
-        border-radius: 0.5rem;
+        margin: 1rem 0;
+        box-shadow: 0 2px 10px rgba(255, 193, 7, 0.2);
+    }
+    
+    .error-message {
+        background: linear-gradient(135deg, #f8d7da, #f5c6cb);
+        border: none;
+        border-radius: 10px;
         color: #721c24;
+        padding: 1rem;
+        margin: 1rem 0;
+        box-shadow: 0 2px 10px rgba(220, 53, 69, 0.2);
+    }
+    
+    /* Dataframes estilizados */
+    .dataframe {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        background: white;
+    }
+    
+    /* Inputs y selects mejorados */
+    .stTextInput input, .stSelectbox select, .stDateInput input {
+        border-radius: 10px !important;
+        border: 2px solid #e2e8f0 !important;
+        padding: 0.75rem 1rem !important;
+        background: rgba(255, 255, 255, 0.9) !important;
+    }
+    
+    .stTextInput input:focus, .stSelectbox select:focus, .stDateInput input:focus {
+        border-color: #3498db !important;
+        box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1) !important;
+    }
+    
+    /* Sidebar mejorado */
+    .css-1d391kg {
+        background: rgba(255, 255, 255, 0.95) !important;
+        backdrop-filter: blur(15px) !important;
+        border-right: 1px solid rgba(255,255,255,0.2) !important;
+    }
+    
+    /* Radio buttons mejorados */
+    .stRadio > div {
+        background: rgba(255, 255, 255, 0.8);
+        padding: 1rem;
+        border-radius: 10px;
+        backdrop-filter: blur(10px);
+    }
+    
+    /* Checkbox mejorado */
+    .stCheckbox > label {
+        background: rgba(255, 255, 255, 0.8);
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        backdrop-filter: blur(10px);
+    }
+    
+    /* Expander mejorado */
+    .streamlit-expanderHeader {
+        background: linear-gradient(135deg, #3498db 0%, #2980b9 100%) !important;
+        color: white !important;
+        border-radius: 8px !important;
+        font-weight: 600 !important;
+    }
+    
+    /* Footer profesional */
+    .footer {
+        text-align: center;
+        color: white;
+        padding: 2rem;
+        margin-top: 3rem;
+        font-size: 0.9em;
+    }
+    
+    /* Responsive design */
+    @media (max-width: 768px) {
+        .main-header {
+            font-size: 2rem;
+            padding: 0.5rem;
+        }
+        
+        .section-header {
+            font-size: 1.5rem;
+        }
+        
+        .metric-card {
+            padding: 1rem;
+            margin: 0.25rem;
+        }
+        
+        .main-container {
+            padding: 1rem;
+            margin: 0.5rem;
+        }
     }
 </style>
 """, unsafe_allow_html=True)
@@ -301,33 +501,74 @@ def update_cleaning_records_after_edit(old_name, new_name):
 
 initialize_session_state()
 
+# Contenedor principal con fondo profesional
+st.markdown('<div class="main-container">', unsafe_allow_html=True)
+
 # Encabezado principal
-st.markdown('<h1 class="main-header">🧹 Sistema de Registro de Limpieza</h1>', unsafe_allow_html=True)
+st.markdown('<h1 class="main-header">🧹 Sistema de Gestión de Limpieza</h1>', unsafe_allow_html=True)
 
 # Sidebar para navegación
-st.sidebar.title("Navegación")
-page = st.sidebar.radio("Selecciona una sección:", 
-                       ["🏠 Inicio", "👥 Registro de Estudiantes", "📝 Registro de Limpieza", "📊 Historial de Limpieza"])
+with st.sidebar:
+    st.markdown("""
+    <div style='background: linear-gradient(135deg, #3498db 0%, #2980b9 100%); 
+                padding: 2rem; 
+                border-radius: 15px; 
+                color: white; 
+                text-align: center;
+                margin-bottom: 2rem;
+                box-shadow: 0 4px 20px rgba(52, 152, 219, 0.3);'>
+        <h1 style='font-size: 3rem; margin: 0;'>🧹</h1>
+        <h3 style='margin: 0.5rem 0;'>Sistema de Gestión</h3>
+        <p style='margin: 0; font-size: 0.9em;'>Control de Limpieza</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    page = st.radio(
+        "**Navegación**", 
+        ["🏠 Inicio", "👥 Gestión de Estudiantes", "📝 Registro de Limpieza", "📊 Historial y Reportes"],
+        key="navigation"
+    )
 
 # Página de Inicio
 if page == "🏠 Inicio":
-    st.markdown('<h2 class="section-header">Bienvenido al Sistema de Registro de Limpieza</h2>', unsafe_allow_html=True)
+    st.markdown('<h2 class="section-header">📊 Dashboard Principal</h2>', unsafe_allow_html=True)
     
+    # Métricas en tarjetas modernas
     col1, col2, col3 = st.columns(3)
-    col1.metric("Total Estudiantes", len(st.session_state.students))
-    col2.metric("Registros de Limpieza", len(st.session_state.cleaning_history))
     
-    week_records = []
-    try:
-        week_dates = get_current_week_dates()
-        week_records = [r for r in st.session_state.cleaning_history 
-                       if datetime.strptime(r['fecha'], '%Y-%m-%d').date() in week_dates]
-    except:
+    with col1:
+        st.markdown(f"""
+        <div class="metric-card">
+            <h3>👥 Total Estudiantes</h3>
+            <h2>{len(st.session_state.students)}</h2>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col2:
+        st.markdown(f"""
+        <div class="metric-card">
+            <h3>📝 Registros Totales</h3>
+            <h2>{len(st.session_state.cleaning_history)}</h2>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col3:
         week_records = []
-    col3.metric("Limpiezas Esta Semana", len(week_records))
+        try:
+            week_dates = get_current_week_dates()
+            week_records = [r for r in st.session_state.cleaning_history 
+                           if datetime.strptime(r['fecha'], '%Y-%m-%d').date() in week_dates]
+        except:
+            week_records = []
+        st.markdown(f"""
+        <div class="metric-card">
+            <h3>📅 Esta Semana</h3>
+            <h2>{len(week_records)}</h2>
+        </div>
+        """, unsafe_allow_html=True)
     
     # Resumen de limpiezas de la semana actual
-    st.subheader("📅 Resumen de Limpiezas - Semana Actual")
+    st.markdown('<h2 class="section-header">📋 Resumen Semanal de Limpiezas</h2>', unsafe_allow_html=True)
     
     try:
         week_dates = get_current_week_dates()
@@ -352,9 +593,9 @@ if page == "🏠 Inicio":
     except Exception as e:
         st.error(f"Error al cargar el resumen semanal: {e}")
 
-# Página de Registro de Estudiantes
-elif page == "👥 Registro de Estudiantes":
-    st.markdown('<h2 class="section-header">👥 Gestión de Estudiantes</h2>', unsafe_allow_html=True)
+# Página de Gestión de Estudiantes
+elif page == "👥 Gestión de Estudiantes":
+    st.markdown('<h2 class="section-header">👤 Gestión de Estudiantes</h2>', unsafe_allow_html=True)
     
     # Formulario para agregar/editar estudiantes
     with st.form("student_form", clear_on_submit=True):
@@ -544,7 +785,7 @@ elif page == "📝 Registro de Limpieza":
             student1 = st.selectbox("Estudiante 1:", [""] + available_students, key="student1")
             student2 = st.selectbox("Estudiante 2 (opcional):", [""] + available_students, key="student2")
             student3 = st.selectbox("Estudiante 3 (opcional):", [""] + available_students, key="student3")
-        submitted = st.form_submit_button("Registrar Limpieza")
+        submitted = st.form_submit_button("🧹 Registrar Limpieza")
         
         if submitted:
             students_selected = [s for s in [student1, student2, student3] if s.strip()]
@@ -570,9 +811,9 @@ elif page == "📝 Registro de Limpieza":
                     else:
                         st.error("❌ Error al guardar el registro de limpieza.")
 
-# Página de Historial de Limpieza
-elif page == "📊 Historial de Limpieza":
-    st.markdown('<h2 class="section-header">📊 Historial de Limpieza</h2>', unsafe_allow_html=True)
+# Página de Historial y Reportes
+elif page == "📊 Historial y Reportes":
+    st.markdown('<h2 class="section-header">📊 Historial y Reportes de Limpieza</h2>', unsafe_allow_html=True)
     
     col1, col2, col3 = st.columns(3)
     with col1:
@@ -658,14 +899,12 @@ elif page == "📊 Historial de Limpieza":
     else:
         st.info("No hay registros de limpieza que coincidan con los filtros seleccionados.")
 
-# Footer
-st.markdown("---")
-st.markdown(
-    """
-    <div style='text-align:center; color:#666; font-size:0.9em;'>
-        <p>Sistema de Registro de Limpieza 🧹</p>
-        <p>© 2025 ING. Irvin Adonis Mora Paredes. Todos los derechos reservados.</p>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
+st.markdown('</div>', unsafe_allow_html=True)
+
+# Footer profesional
+st.markdown("""
+<div class="footer">
+    <p>Sistema de Gestión de Limpieza 🧹</p>
+    <p>© 2025 ING. Irvin Adonis Mora Paredes. Todos los derechos reservados.</p>
+</div>
+""", unsafe_allow_html=True)
