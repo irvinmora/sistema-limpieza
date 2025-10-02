@@ -4,6 +4,10 @@ import pandas as pd
 from datetime import datetime, date
 import os
 
+# SOLUCIÓN: Desactivar estadísticas para evitar errores de permisos
+os.environ['STREAMLIT_GATHER_USAGE_STATS'] = 'false'
+os.environ['STREAMLIT_SERVER_HEADLESS'] = 'true'
+
 # Configuración de la página
 st.set_page_config(
     page_title="Sistema de Registro de Limpieza",
@@ -11,8 +15,7 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
-# SOLUCIÓN: Desactivar estadísticas para evitar errores de permisos
-st._config.set_option('browser.gatherUsageStats', False)
+
 # Estilos CSS personalizados
 st.markdown("""
 <style>
@@ -51,7 +54,6 @@ try:
     from utils.pdf_generator import generate_pdf_report
     PDF_AVAILABLE = True
 except ImportError as e:
-    st.error(f"Error importing PDF generator: {e}")
     PDF_AVAILABLE = False
     # Función dummy como fallback
     def generate_pdf_report(records, week_dates):
@@ -74,10 +76,8 @@ def load_data(filename):
                 return []
             return json.loads(content)
     except json.JSONDecodeError:
-        st.error(f"Error al leer {filename}. Se iniciará con datos vacíos.")
         return []
     except Exception as e:
-        st.error(f"Error inesperado con {filename}: {e}")
         return []
 
 def save_data(data, filename):
@@ -89,7 +89,6 @@ def save_data(data, filename):
             json.dump(data, f, ensure_ascii=False, indent=2)
         return True
     except Exception as e:
-        st.error(f"Error al guardar {filename}: {e}")
         return False
 
 def initialize_session_state():
