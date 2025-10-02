@@ -3,6 +3,7 @@ import json
 import pandas as pd
 from datetime import datetime, date
 import os
+import base64
 
 # SOLUCIÓN: Desactivar estadísticas para evitar errores de permisos
 os.environ['STREAMLIT_GATHER_USAGE_STATS'] = 'false'
@@ -13,8 +14,30 @@ st.set_page_config(
     page_title="Sistema de Registro de Limpieza",
     page_icon="🧹",
     layout="wide",
-    initial_sidebar_state="collapsed"  # Menú hamburguesa por defecto en móviles
+    initial_sidebar_state="collapsed"
 )
+
+# Verificar e instalar reportlab automáticamente
+try:
+    import subprocess
+    import sys
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "reportlab"])
+    st.success("✅ reportlab instalado correctamente")
+except:
+    st.warning("⚠️ No se pudo instalar reportlab automáticamente")
+
+# Intentar importar reportlab
+try:
+    from reportlab.lib.pagesizes import letter, A4
+    from reportlab.pdfgen import canvas
+    from reportlab.lib.styles import getSampleStyleSheet
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+    from reportlab.lib import colors
+    from reportlab.lib.units import inch
+    PDF_AVAILABLE = True
+except ImportError as e:
+    PDF_AVAILABLE = False
+    st.error(f"❌ Error: reportlab no está disponible. Ejecuta: pip install reportlab")
 
 # Estilos CSS personalizados
 st.markdown("""
@@ -56,18 +79,12 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# FUNCIÓN CORREGIDA PARA GENERAR PDF
+# FUNCIÓN MEJORADA PARA GENERAR PDF
 def generate_pdf_report(records, week_dates):
     try:
-        from reportlab.lib.pagesizes import letter
-        from reportlab.pdfgen import canvas
-        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
-        from reportlab.lib import colors
-        from reportlab.pdfbase import pdfmetrics
-        from reportlab.pdfbase.ttfonts import TTFont
-        import os
-        
+        if not PDF_AVAILABLE:
+            raise ImportError("reportlab no está disponible")
+            
         # Crear directorio de reportes si no existe
         os.makedirs("reportes", exist_ok=True)
         
@@ -77,7 +94,7 @@ def generate_pdf_report(records, week_dates):
         # Crear el documento PDF
         doc = SimpleDocTemplate(
             pdf_path,
-            pagesize=letter,
+            pagesize=A4,
             rightMargin=72,
             leftMargin=72,
             topMargin=72,
@@ -89,12 +106,15 @@ def generate_pdf_report(records, week_dates):
         styles = getSampleStyleSheet()
         
         # Título
+        from reportlab.lib.styles import ParagraphStyle
+        from reportlab.lib.enums import TA_CENTER
+        
         title_style = ParagraphStyle(
             'CustomTitle',
             parent=styles['Heading1'],
-            fontSize=18,
+            fontSize=16,
             spaceAfter=30,
-            alignment=1,  # Centrado
+            alignment=TA_CENTER,
             textColor=colors.HexColor('#1f77b4')
         )
         title = Paragraph("REPORTE SEMANAL DE LIMPIEZA", title_style)
@@ -105,22 +125,26 @@ def generate_pdf_report(records, week_dates):
             'WeekInfo',
             parent=styles['Normal'],
             fontSize=12,
-            spaceAfter=12,
-            alignment=1
+            spaceAfter=20,
+            alignment=TA_CENTER
         )
-        week_info = Paragraph(f"Semana del {week_dates[0].strftime('%d/%m/%Y')} al {week_dates[-1].strftime('%d/%m/%Y')}", week_info_style)
+        week_info = Paragraph(
+            f"Semana del {week_dates[0].strftime('%d/%m/%Y')} al {week_dates[-1].strftime('%d/%m/%Y')}", 
+            week_info_style
+        )
         story.append(week_info)
         
         story.append(Spacer(1, 20))
         
         # Preparar datos para la tabla
         if records:
+            # Encabezados de la tabla
             table_data = [['Fecha', 'Día', 'Estudiantes', 'Área', 'Hora']]
             
             for record in records:
-                # Limpiar caracteres problemáticos y usar caracteres ASCII simples
+                # Limpiar caracteres problemáticos
                 estudiantes = ', '.join(record['estudiantes'])
-                # Reemplazar caracteres especiales por equivalentes simples
+                # Reemplazar caracteres especiales
                 estudiantes = estudiantes.replace('•', '-').replace('–', '-').replace('—', '-')
                 
                 fecha_obj = datetime.strptime(record['fecha'], '%Y-%m-%d')
@@ -135,13 +159,13 @@ def generate_pdf_report(records, week_dates):
                 ])
             
             # Crear tabla
-            table = Table(table_data, colWidths=[80, 70, 150, 80, 60])
+            table = Table(table_data, colWidths=[70, 60, 180, 60, 50])
             table.setStyle(TableStyle([
                 ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2e86ab')),
                 ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
                 ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
                 ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, 0), 10),
+                ('FONTSIZE', (0, 0), (-1, 0), 9),
                 ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
                 ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
                 ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
@@ -153,13 +177,14 @@ def generate_pdf_report(records, week_dates):
             story.append(table)
             
             # Estadísticas
-            story.append(Spacer(1, 30))
+            story.append(Spacer(1, 25))
             
             stats_style = ParagraphStyle(
                 'Stats',
                 parent=styles['Normal'],
                 fontSize=10,
-                spaceAfter=6
+                spaceAfter=6,
+                leftIndent=20
             )
             
             total_registros = len(records)
@@ -168,9 +193,9 @@ def generate_pdf_report(records, week_dates):
             
             stats_text = f"""
             <b>ESTADÍSTICAS:</b><br/>
-            Total de registros: {total_registros}<br/>
-            Limpiezas de aula: {limpiezas_aula}<br/>
-            Limpiezas de baños: {limpiezas_banos}<br/>
+            • Total de registros: {total_registros}<br/>
+            • Limpiezas de aula: {limpiezas_aula}<br/>
+            • Limpiezas de baños: {limpiezas_banos}<br/>
             """
             stats = Paragraph(stats_text, stats_style)
             story.append(stats)
@@ -181,7 +206,7 @@ def generate_pdf_report(records, week_dates):
                 parent=styles['Normal'],
                 fontSize=12,
                 textColor=colors.gray,
-                alignment=1
+                alignment=TA_CENTER
             )
             no_data = Paragraph("No hay registros de limpieza para esta semana.", no_data_style)
             story.append(no_data)
@@ -193,9 +218,12 @@ def generate_pdf_report(records, week_dates):
             parent=styles['Normal'],
             fontSize=8,
             textColor=colors.gray,
-            alignment=1
+            alignment=TA_CENTER
         )
-        footer = Paragraph(f"Generado el {datetime.now().strftime('%d/%m/%Y %H:%M:%S')} - Sistema de Registro de Limpieza", footer_style)
+        footer = Paragraph(
+            f"Generado el {datetime.now().strftime('%d/%m/%Y %H:%M:%S')} - Sistema de Registro de Limpieza", 
+            footer_style
+        )
         story.append(footer)
         
         # Generar PDF
@@ -204,6 +232,94 @@ def generate_pdf_report(records, week_dates):
         
     except Exception as e:
         st.error(f"Error detallado al generar PDF: {str(e)}")
+        return None
+
+# FUNCIÓN SIMPLE ALTERNATIVA POR SI FALLA LA PRINCIPAL
+def generate_simple_pdf(records, week_dates):
+    try:
+        from reportlab.pdfgen import canvas
+        from reportlab.lib.pagesizes import A4
+        
+        # Crear directorio de reportes si no existe
+        os.makedirs("reportes", exist_ok=True)
+        
+        # Nombre del archivo
+        pdf_path = f"reportes/reporte_limpieza_simple_{date.today().strftime('%Y-%m-%d')}.pdf"
+        
+        # Crear PDF simple
+        c = canvas.Canvas(pdf_path, pagesize=A4)
+        width, height = A4
+        
+        # Título
+        c.setFont("Helvetica-Bold", 16)
+        c.drawString(100, height - 100, "REPORTE SEMANAL DE LIMPIEZA")
+        
+        # Información de la semana
+        c.setFont("Helvetica", 12)
+        c.drawString(100, height - 130, f"Semana del {week_dates[0].strftime('%d/%m/%Y')} al {week_dates[-1].strftime('%d/%m/%Y')}")
+        
+        # Contenido
+        y_position = height - 180
+        
+        if records:
+            # Encabezados
+            c.setFont("Helvetica-Bold", 10)
+            c.drawString(50, y_position, "Fecha")
+            c.drawString(120, y_position, "Día")
+            c.drawString(180, y_position, "Estudiantes")
+            c.drawString(350, y_position, "Área")
+            c.drawString(420, y_position, "Hora")
+            
+            y_position -= 20
+            c.setFont("Helvetica", 9)
+            
+            for record in records:
+                if y_position < 100:  # Nueva página si es necesario
+                    c.showPage()
+                    y_position = height - 100
+                    c.setFont("Helvetica", 9)
+                
+                estudiantes = ', '.join(record['estudiantes'])
+                fecha_obj = datetime.strptime(record['fecha'], '%Y-%m-%d')
+                fecha_formateada = fecha_obj.strftime('%d/%m/%Y')
+                
+                c.drawString(50, y_position, fecha_formateada)
+                c.drawString(120, y_position, record['dia_semana'])
+                c.drawString(180, y_position, estudiantes[:40])  # Limitar longitud
+                c.drawString(350, y_position, record['tipo_limpieza'])
+                c.drawString(420, y_position, record['hora'])
+                
+                y_position -= 15
+            
+            # Estadísticas
+            y_position -= 20
+            c.setFont("Helvetica-Bold", 10)
+            c.drawString(50, y_position, "ESTADÍSTICAS:")
+            y_position -= 15
+            c.setFont("Helvetica", 9)
+            
+            total_registros = len(records)
+            limpiezas_aula = len([r for r in records if r['tipo_limpieza'] == 'Aula'])
+            limpiezas_banos = len([r for r in records if r['tipo_limpieza'] == 'Baños'])
+            
+            c.drawString(70, y_position, f"Total de registros: {total_registros}")
+            y_position -= 12
+            c.drawString(70, y_position, f"Limpiezas de aula: {limpiezas_aula}")
+            y_position -= 12
+            c.drawString(70, y_position, f"Limpiezas de baños: {limpiezas_banos}")
+        else:
+            c.setFont("Helvetica", 12)
+            c.drawString(100, y_position, "No hay registros de limpieza para esta semana.")
+        
+        # Pie de página
+        c.setFont("Helvetica", 8)
+        c.drawString(200, 50, f"Generado el {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}")
+        
+        c.save()
+        return pdf_path
+        
+    except Exception as e:
+        st.error(f"Error con PDF simple: {str(e)}")
         return None
 
 # FUNCIONES PARA MANEJO DE DATOS
@@ -431,33 +547,49 @@ elif page == "📊 Historial de Limpieza":
 
         st.subheader("📄 Generar Reporte PDF")
         
-        if st.button("Descargar Reporte Semanal en PDF"):
-            try:
-                week_dates = get_current_week_dates()
-                week_records = [r for r in st.session_state.cleaning_history 
-                              if datetime.strptime(r['fecha'], '%Y-%m-%d').date() in week_dates]
-                if week_records:
-                    with st.spinner("Generando PDF..."):
-                        pdf_path = generate_pdf_report(week_records, week_dates)
+        if not PDF_AVAILABLE:
+            st.error("""
+            **reportlab no está instalado. Para generar PDFs, ejecuta:**
+            ```bash
+            pip install reportlab
+            ```
+            """)
+        else:
+            if st.button("📥 Descargar Reporte Semanal en PDF"):
+                try:
+                    week_dates = get_current_week_dates()
+                    week_records = [r for r in st.session_state.cleaning_history 
+                                  if datetime.strptime(r['fecha'], '%Y-%m-%d').date() in week_dates]
                     
-                    if pdf_path and os.path.exists(pdf_path):
-                        with open(pdf_path, "rb") as pdf_file:
-                            pdf_data = pdf_file.read()
+                    if week_records:
+                        with st.spinner("Generando PDF..."):
+                            # Intentar con el método principal primero
+                            pdf_path = generate_pdf_report(week_records, week_dates)
+                            
+                            # Si falla, intentar con el método simple
+                            if not pdf_path:
+                                pdf_path = generate_simple_pdf(week_records, week_dates)
                         
-                        st.success("✅ PDF generado exitosamente!")
-                        st.download_button(
-                            label="📥 Descargar PDF",
-                            data=pdf_data,
-                            file_name=f"reporte_limpieza_semana_{date.today().strftime('%Y-%m-%d')}.pdf",
-                            mime="application/pdf",
-                            key="download_pdf"
-                        )
+                        if pdf_path and os.path.exists(pdf_path):
+                            with open(pdf_path, "rb") as pdf_file:
+                                pdf_data = pdf_file.read()
+                            
+                            st.success("✅ PDF generado exitosamente!")
+                            
+                            # Botón de descarga
+                            st.download_button(
+                                label="📄 Descargar PDF",
+                                data=pdf_data,
+                                file_name=f"reporte_limpieza_semana_{date.today().strftime('%Y-%m-%d')}.pdf",
+                                mime="application/pdf",
+                                key="download_pdf"
+                            )
+                        else:
+                            st.error("❌ No se pudo generar el archivo PDF.")
                     else:
-                        st.error("❌ No se pudo generar el archivo PDF.")
-                else:
-                    st.warning("⚠️ No hay registros de limpieza para esta semana.")
-            except Exception as e:
-                st.error(f"❌ Error al generar el PDF: {str(e)}")
+                        st.warning("⚠️ No hay registros de limpieza para esta semana.")
+                except Exception as e:
+                    st.error(f"❌ Error al generar el PDF: {str(e)}")
 
     else:
         st.info("No hay registros de limpieza que coincidan con los filtros seleccionados.")
