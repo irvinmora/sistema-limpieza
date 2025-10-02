@@ -62,7 +62,7 @@ st.markdown("""
     }
     .success-message {
         padding: 1rem;
-        background-color: #d4edda;
+        background-color: #fce5cd;
         border: 1px solid #c3e6cb;
         border-radius: 0.5rem;
         color: #155724;
