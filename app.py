@@ -46,17 +46,164 @@ st.markdown("""
         border-radius: 0.5rem;
         color: #856404;
     }
+    .error-message {
+        padding: 1rem;
+        background-color: #f8d7da;
+        border: 1px solid #f5c6cb;
+        border-radius: 0.5rem;
+        color: #721c24;
+    }
 </style>
 """, unsafe_allow_html=True)
 
-# IMPORTACIÓN SEGURA DEL PDF GENERATOR
-try:
-    from utils.pdf_generator import generate_pdf_report
-    PDF_AVAILABLE = True
-except ImportError as e:
-    PDF_AVAILABLE = False
-    def generate_pdf_report(records, week_dates):
-        st.error("PDF generator not available")
+# FUNCIÓN CORREGIDA PARA GENERAR PDF
+def generate_pdf_report(records, week_dates):
+    try:
+        from reportlab.lib.pagesizes import letter
+        from reportlab.pdfgen import canvas
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+        from reportlab.lib import colors
+        from reportlab.pdfbase import pdfmetrics
+        from reportlab.pdfbase.ttfonts import TTFont
+        import os
+        
+        # Crear directorio de reportes si no existe
+        os.makedirs("reportes", exist_ok=True)
+        
+        # Nombre del archivo
+        pdf_path = f"reportes/reporte_limpieza_semana_{date.today().strftime('%Y-%m-%d')}.pdf"
+        
+        # Crear el documento PDF
+        doc = SimpleDocTemplate(
+            pdf_path,
+            pagesize=letter,
+            rightMargin=72,
+            leftMargin=72,
+            topMargin=72,
+            bottomMargin=18
+        )
+        
+        # Contenido del PDF
+        story = []
+        styles = getSampleStyleSheet()
+        
+        # Título
+        title_style = ParagraphStyle(
+            'CustomTitle',
+            parent=styles['Heading1'],
+            fontSize=18,
+            spaceAfter=30,
+            alignment=1,  # Centrado
+            textColor=colors.HexColor('#1f77b4')
+        )
+        title = Paragraph("REPORTE SEMANAL DE LIMPIEZA", title_style)
+        story.append(title)
+        
+        # Información de la semana
+        week_info_style = ParagraphStyle(
+            'WeekInfo',
+            parent=styles['Normal'],
+            fontSize=12,
+            spaceAfter=12,
+            alignment=1
+        )
+        week_info = Paragraph(f"Semana del {week_dates[0].strftime('%d/%m/%Y')} al {week_dates[-1].strftime('%d/%m/%Y')}", week_info_style)
+        story.append(week_info)
+        
+        story.append(Spacer(1, 20))
+        
+        # Preparar datos para la tabla
+        if records:
+            table_data = [['Fecha', 'Día', 'Estudiantes', 'Área', 'Hora']]
+            
+            for record in records:
+                # Limpiar caracteres problemáticos y usar caracteres ASCII simples
+                estudiantes = ', '.join(record['estudiantes'])
+                # Reemplazar caracteres especiales por equivalentes simples
+                estudiantes = estudiantes.replace('•', '-').replace('–', '-').replace('—', '-')
+                
+                fecha_obj = datetime.strptime(record['fecha'], '%Y-%m-%d')
+                fecha_formateada = fecha_obj.strftime('%d/%m/%Y')
+                
+                table_data.append([
+                    fecha_formateada,
+                    record['dia_semana'],
+                    estudiantes,
+                    record['tipo_limpieza'],
+                    record['hora']
+                ])
+            
+            # Crear tabla
+            table = Table(table_data, colWidths=[80, 70, 150, 80, 60])
+            table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2e86ab')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 10),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+                ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+                ('FONTSIZE', (0, 1), (-1, -1), 8),
+                ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ]))
+            
+            story.append(table)
+            
+            # Estadísticas
+            story.append(Spacer(1, 30))
+            
+            stats_style = ParagraphStyle(
+                'Stats',
+                parent=styles['Normal'],
+                fontSize=10,
+                spaceAfter=6
+            )
+            
+            total_registros = len(records)
+            limpiezas_aula = len([r for r in records if r['tipo_limpieza'] == 'Aula'])
+            limpiezas_banos = len([r for r in records if r['tipo_limpieza'] == 'Baños'])
+            
+            stats_text = f"""
+            <b>ESTADÍSTICAS:</b><br/>
+            Total de registros: {total_registros}<br/>
+            Limpiezas de aula: {limpiezas_aula}<br/>
+            Limpiezas de baños: {limpiezas_banos}<br/>
+            """
+            stats = Paragraph(stats_text, stats_style)
+            story.append(stats)
+        else:
+            # Mensaje cuando no hay registros
+            no_data_style = ParagraphStyle(
+                'NoData',
+                parent=styles['Normal'],
+                fontSize=12,
+                textColor=colors.gray,
+                alignment=1
+            )
+            no_data = Paragraph("No hay registros de limpieza para esta semana.", no_data_style)
+            story.append(no_data)
+        
+        # Pie de página
+        story.append(Spacer(1, 30))
+        footer_style = ParagraphStyle(
+            'Footer',
+            parent=styles['Normal'],
+            fontSize=8,
+            textColor=colors.gray,
+            alignment=1
+        )
+        footer = Paragraph(f"Generado el {datetime.now().strftime('%d/%m/%Y %H:%M:%S')} - Sistema de Registro de Limpieza", footer_style)
+        story.append(footer)
+        
+        # Generar PDF
+        doc.build(story)
+        return pdf_path
+        
+    except Exception as e:
+        st.error(f"Error detallado al generar PDF: {str(e)}")
         return None
 
 # FUNCIONES PARA MANEJO DE DATOS
@@ -149,17 +296,17 @@ elif page == "👥 Registro de Estudiantes":
     st.markdown('<h2 class="section-header">👥 Registro de Estudiantes</h2>', unsafe_allow_html=True)
     
     # Formulario para agregar estudiantes
-    with st.form("student_form"):
+    with st.form("student_form", clear_on_submit=True):
         col1, col2 = st.columns(2)
         with col1:
-            student_name = st.text_input("Nombre completo del estudiante:")
+            student_name = st.text_input("Nombre completo del estudiante:", key="student_name")
         with col2:
-            student_id = st.text_input("ID o Matrícula (opcional):")
+            student_id = st.text_input("ID o Matrícula (opcional):", key="student_id")
         submitted = st.form_submit_button("Agregar Estudiante")
         
         if submitted:
             if student_name.strip():
-                student_name = student_name.strip().upper()  # <-- Convertir a mayúsculas automáticamente
+                student_name = student_name.strip().upper()
                 existing_students = [s['nombre'].upper() for s in st.session_state.students]
                 if student_name.upper() in existing_students:
                     st.warning("⚠️ Este estudiante ya está registrado.")
@@ -201,17 +348,17 @@ elif page == "👥 Registro de Estudiantes":
 elif page == "📝 Registro de Limpieza":
     st.markdown('<h2 class="section-header">📝 Registro de Limpieza Diaria</h2>', unsafe_allow_html=True)
     
-    with st.form("cleaning_form"):
+    with st.form("cleaning_form", clear_on_submit=True):
         col1, col2 = st.columns(2)
         with col1:
-            cleaning_date = st.date_input("Fecha de limpieza:", value=date.today())
-            cleaning_type = st.selectbox("Tipo de limpieza:", ["Aula", "Baños"])
+            cleaning_date = st.date_input("Fecha de limpieza:", value=date.today(), key="cleaning_date")
+            cleaning_type = st.selectbox("Tipo de limpieza:", ["Aula", "Baños"], key="cleaning_type")
         with col2:
             available_students = [s['nombre'] for s in st.session_state.students]
             st.write("Selecciona los estudiantes (1-3):")
-            student1 = st.selectbox("Estudiante 1:", [""] + available_students)
-            student2 = st.selectbox("Estudiante 2 (opcional):", [""] + available_students)
-            student3 = st.selectbox("Estudiante 3 (opcional):", [""] + available_students)
+            student1 = st.selectbox("Estudiante 1:", [""] + available_students, key="student1")
+            student2 = st.selectbox("Estudiante 2 (opcional):", [""] + available_students, key="student2")
+            student3 = st.selectbox("Estudiante 3 (opcional):", [""] + available_students, key="student3")
         submitted = st.form_submit_button("Registrar Limpieza")
         
         if submitted:
@@ -244,12 +391,13 @@ elif page == "📊 Historial de Limpieza":
     
     col1, col2, col3 = st.columns(3)
     with col1:
-        filter_type = st.selectbox("Filtrar por tipo:", ["Todos", "Aula", "Baños"])
+        filter_type = st.selectbox("Filtrar por tipo:", ["Todos", "Aula", "Baños"], key="filter_type")
     with col2:
         date_range = st.date_input(
             "Rango de fechas:",
             value=(date.today() - pd.Timedelta(days=7), date.today()),
-            max_value=date.today()
+            max_value=date.today(),
+            key="date_range"
         )
     with col3:
         if isinstance(date_range, tuple) and len(date_range) == 2:
@@ -282,31 +430,34 @@ elif page == "📊 Historial de Limpieza":
         col3.metric("Limpiezas de Baños", len([r for r in filtered_history if r['tipo_limpieza'] == 'Baños']))
 
         st.subheader("📄 Generar Reporte PDF")
-        if not PDF_AVAILABLE:
-            st.warning("⚠️ El generador de PDF no está disponible. Verifica que el archivo utils/pdf_generator.py exista.")
+        
         if st.button("Descargar Reporte Semanal en PDF"):
-            if PDF_AVAILABLE:
-                try:
-                    week_dates = get_current_week_dates()
-                    week_records = [r for r in st.session_state.cleaning_history 
-                                  if datetime.strptime(r['fecha'], '%Y-%m-%d').date() in week_dates]
-                    if week_records:
+            try:
+                week_dates = get_current_week_dates()
+                week_records = [r for r in st.session_state.cleaning_history 
+                              if datetime.strptime(r['fecha'], '%Y-%m-%d').date() in week_dates]
+                if week_records:
+                    with st.spinner("Generando PDF..."):
                         pdf_path = generate_pdf_report(week_records, week_dates)
-                        if pdf_path:
-                            with open(pdf_path, "rb") as pdf_file:
-                                pdf_data = pdf_file.read()
-                            st.download_button(
-                                label="Descargar PDF",
-                                data=pdf_data,
-                                file_name=f"reporte_limpieza_semana_{date.today().strftime('%Y-%m-%d')}.pdf",
-                                mime="application/pdf"
-                            )
+                    
+                    if pdf_path and os.path.exists(pdf_path):
+                        with open(pdf_path, "rb") as pdf_file:
+                            pdf_data = pdf_file.read()
+                        
+                        st.success("✅ PDF generado exitosamente!")
+                        st.download_button(
+                            label="📥 Descargar PDF",
+                            data=pdf_data,
+                            file_name=f"reporte_limpieza_semana_{date.today().strftime('%Y-%m-%d')}.pdf",
+                            mime="application/pdf",
+                            key="download_pdf"
+                        )
                     else:
-                        st.warning("No hay registros de limpieza para esta semana.")
-                except Exception as e:
-                    st.error(f"Error al generar el PDF: {e}")
-            else:
-                st.error("El generador de PDF no está disponible.")
+                        st.error("❌ No se pudo generar el archivo PDF.")
+                else:
+                    st.warning("⚠️ No hay registros de limpieza para esta semana.")
+            except Exception as e:
+                st.error(f"❌ Error al generar el PDF: {str(e)}")
 
     else:
         st.info("No hay registros de limpieza que coincidan con los filtros seleccionados.")
@@ -317,7 +468,7 @@ st.markdown(
     """
     <div style='text-align:center; color:#666; font-size:0.9em;'>
         <p>Sistema de Registro de Limpieza 🧹</p>
-        © 2025 ING. Irvin Adonis Mora Paredes. Todos los derechos reservados.
+        <p>© 2025 ING. Irvin Adonis Mora Paredes. Todos los derechos reservados.</p>
     </div>
     """,
     unsafe_allow_html=True
