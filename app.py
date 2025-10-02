@@ -17,16 +17,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Verificar e instalar reportlab automáticamente
-try:
-    import subprocess
-    import sys
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "reportlab"])
-    st.success("✅ reportlab instalado correctamente")
-except:
-    st.warning("⚠️ No se pudo instalar reportlab automáticamente")
-
-# Intentar importar reportlab
+# Intentar importar reportlab silenciosamente
 try:
     from reportlab.lib.pagesizes import letter, A4
     from reportlab.pdfgen import canvas
@@ -35,9 +26,23 @@ try:
     from reportlab.lib import colors
     from reportlab.lib.units import inch
     PDF_AVAILABLE = True
-except ImportError as e:
-    PDF_AVAILABLE = False
-    st.error(f"❌ Error: reportlab no está disponible. Ejecuta: pip install reportlab")
+except ImportError:
+    # Intentar instalar reportlab solo si no está disponible
+    try:
+        import subprocess
+        import sys
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "reportlab"], 
+                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        # Reintentar importación después de la instalación
+        from reportlab.lib.pagesizes import letter, A4
+        from reportlab.pdfgen import canvas
+        from reportlab.lib.styles import getSampleStyleSheet
+        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+        from reportlab.lib import colors
+        from reportlab.lib.units import inch
+        PDF_AVAILABLE = True
+    except:
+        PDF_AVAILABLE = False
 
 # Estilos CSS personalizados
 st.markdown("""
@@ -659,7 +664,7 @@ st.markdown(
     """
     <div style='text-align:center; color:#666; font-size:0.9em;'>
         <p>Sistema de Registro de Limpieza 🧹</p>
-        <h2>© 2025 ING. Irvin Adonis Mora Paredes. Todos los derechos reservados.</h2>
+        <p>© 2025 ING. Irvin Adonis Mora Paredes. Todos los derechos reservados.</p>
     </div>
     """,
     unsafe_allow_html=True
