@@ -659,7 +659,7 @@ st.markdown(
     """
     <div style='text-align:center; color:#666; font-size:0.9em;'>
         <p>Sistema de Registro de Limpieza 🧹</p>
-        <p>© 2025 ING. Irvin Adonis Mora Paredes. Todos los derechos reservados.</p>
+        © 2025 ING. Irvin Adonis Mora Paredes. Todos los derechos reservados.
     </div>
     """,
     unsafe_allow_html=True
