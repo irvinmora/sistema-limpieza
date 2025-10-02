@@ -1,24 +1,22 @@
+---
+title: "Sistema de Registro de Limpieza"
+emoji: "🧹"
+colorFrom: blue
+colorTo: green
+sdk: streamlit
+sdk_version: "1.28.0"
+app_file: app.py
+pinned: false
+---
+
 # Sistema de Registro de Limpieza 🧹
 
 Sistema web para el registro y control de limpieza de aulas y baños por estudiantes.
 
-## Características Principales
+## Características
 
-- 👥 **Registro de Estudiantes**: Gestión completa de estudiantes
-- 📝 **Registro de Limpieza Diaria**: Control de limpiezas por día y tipo
-- 📊 **Historial Completo**: Seguimiento de todas las limpiezas realizadas
-- 📄 **Reportes PDF**: Generación de reportes semanales descargables
-- 💾 **Persistencia de Datos**: Los datos se mantienen entre sesiones
-
-## Instalación y Despliegue
-
-### Requisitos Previos
-- Python 3.8+
-- Cuenta en Hugging Face Spaces
-
-### Despliegue en Hugging Face Spaces
-
-1. **Preparar el repositorio:**
-```bash
-git clone https://huggingface.co/spaces/tu-usuario/limpieza-registry
-cd limpieza-registry
+- 👥 Registro de Estudiantes
+- 📝 Registro de Limpieza Diaria
+- 📊 Historial Completo
+- 📄 Reportes PDF
+- 💾 Persistencia de Datos
