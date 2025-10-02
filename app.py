@@ -379,10 +379,14 @@ elif page == "📊 Historial de Limpieza":
         st.info("No hay registros de limpieza que coincidan con los filtros seleccionados.")
 
 # Footer
+# Footer
 st.markdown("---")
 st.markdown(
-    "<div style='text-align: center; color: #666;'>"
-    "Sistema de Registro de Limpieza 🧹 | Desarrollado para el control de limpieza de aulas y baños"
-    "</div>",
+    """
+    <div style='text-align:center; color:#666;'>
+        Sistema de Registro de Limpieza 🧹<br>
+        Realizado por ING. Irvin Adonis Mora Paredes. Todos los derechos reservados.
+    </div>
+    """,
     unsafe_allow_html=True
 )
