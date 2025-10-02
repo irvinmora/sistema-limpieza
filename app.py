@@ -662,7 +662,7 @@ elif page == "📊 Historial de Limpieza":
 st.markdown("---")
 st.markdown(
     """
-    <div style='text-align:center; color:#666; font-size:0.9em;'>
+    <div style='text-align:center; color:#666; font-size:0.10em;'>
         <p>Sistema de Registro de Limpieza 🧹</p>
         <p>© 2025 ING. Irvin Adonis Mora Paredes. Todos los derechos reservados.</p>
     </div>
