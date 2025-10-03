@@ -44,10 +44,8 @@ except ImportError:
     except:
         PDF_AVAILABLE = False
         
-# Al inicio del código, después de los imports
-# Estilos CSS personalizados
+# Estilos CSS personalizados MEJORADOS
 st.markdown("""
-            
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
 <style>
@@ -59,7 +57,7 @@ st.markdown("""
     }
     .section-header {
         font-size: 1.8rem;
-        color:blue ;
+        color: blue;
         border-bottom: 5px solid #2e86ab;
         padding-bottom: 0.5rem;
         margin-top: 2rem;
@@ -84,91 +82,129 @@ st.markdown("""
         border: 1px solid #f5c6cb;
         border-radius: 0.5rem;
         color: #721c24;
-        /* Botón de menú móvil MEJORADO */
-    .mobile-menu-btn {
+    }
+    
+    /* Botón de menú MEJORADO y FUNCIONAL */
+    .menu-button {
         position: fixed;
-        top: 15px;
-        left: 15px;
+        top: 20px;
+        left: 20px;
         z-index: 9999;
-        background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+        background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
         color: white;
         border: none;
-        border-radius: 12px;
-        width: auto;
-        height: 60px;
-        font-size: 1.1rem;
+        border-radius: 50px;
+        padding: 12px 25px;
+        font-size: 16px;
         font-weight: bold;
         cursor: pointer;
-        box-shadow: 0 6px 20px rgba(0, 123, 255, 0.6);
+        box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
         display: flex;
         align-items: center;
-        justify-content: center;
-        padding: 0 25px;
-        min-width: 140px;
+        gap: 10px;
         transition: all 0.3s ease;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        gap: 8px;
+        font-family: 'Arial', sans-serif;
     }
-
-    .mobile-menu-btn:hover {
-        background: linear-gradient(135deg, #0056b3 0%, #004085 100%);
+    
+    .menu-button:hover {
+        background: linear-gradient(135deg, #FF8E53 0%, #FF6B6B 100%);
         transform: translateY(-2px);
-        box-shadow: 0 8px 25px rgba(0, 123, 255, 0.8);
+        box-shadow: 0 6px 20px rgba(255, 107, 107, 0.6);
     }
-
-    .mobile-menu-btn:active {
+    
+    .menu-button:active {
         transform: translateY(0);
-        box-shadow: 0 4px 15px rgba(0, 123, 255, 0.6);
     }
-
-    /* Efecto de pulso para llamar más la atención */
-    @keyframes pulse-glow {
-        0% {
-            box-shadow: 0 6px 20px rgba(0, 123, 255, 0.6);
-        }
-        50% {
-            box-shadow: 0 6px 30px rgba(0, 123, 255, 0.9);
-        }
-        100% {
-            box-shadow: 0 6px 20px rgba(0, 123, 255, 0.6);
-        }
+    
+    .menu-button i {
+        font-size: 18px;
     }
-
-    .mobile-menu-btn {
-        animation: pulse-glow 2s infinite;
+    
+    /* Efecto de pulso sutil */
+    @keyframes gentle-pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
     }
-
-    /* Icono dentro del botón */
-    .mobile-menu-btn i {
-        font-size: 1.3rem;
+    
+    .menu-button {
+        animation: gentle-pulse 3s infinite;
     }
-
-    /* Para móviles específicamente */
+    
+    /* Responsive */
     @media (max-width: 768px) {
-        .mobile-menu-btn {
-            top: 10px;
-            left: 10px;
-            height: 55px;
-            min-width: 130px;
-            font-size: 1rem;
-            padding: 0 20px;
-        }
-        
-        .mobile-menu-btn i {
-            font-size: 1.2rem;
+        .menu-button {
+            top: 15px;
+            left: 15px;
+            padding: 10px 20px;
+            font-size: 14px;
         }
     }
-
-    /* Para tablets */
-    @media (min-width: 769px) and (max-width: 1024px) {
-        .mobile-menu-btn {
-            top: 12px;
-            left: 12px;
-        }
+    
+    /* Estilo para el sidebar cuando está abierto */
+    .sidebar-content {
+        padding: 20px;
     }
 </style>
 """, unsafe_allow_html=True)
+
+# BOTÓN DE MENÚ MEJORADO - USANDO STREAMLIT NATIVO
+col1, col2, col3 = st.columns([1, 2, 1])
+with col1:
+    if st.button("🍔 **MENÚ**", help="Haz clic para abrir/cerrar el menú de navegación"):
+        # Cambiar el estado del sidebar
+        st.session_state.menu_abierto = not st.session_state.get('menu_abierto', False)
+
+# Inicializar estado del menú
+if 'menu_abierto' not in st.session_state:
+    st.session_state.menu_abierto = False
+
+# Sidebar para navegación - SOLO MOSTRAR SI ESTÁ ABIERTO
+if st.session_state.menu_abierto:
+    with st.sidebar:
+        st.markdown('<div class="sidebar-content">', unsafe_allow_html=True)
+        st.title("🧭 Navegación")
+        st.markdown("---")
+        
+        # Botones de navegación en el sidebar
+        if st.button("🏠 **Inicio**", use_container_width=True):
+            st.session_state.page = "🏠 Inicio"
+            st.session_state.menu_abierto = False
+            st.rerun()
+            
+        if st.button("👥 **Registro de Estudiantes**", use_container_width=True):
+            st.session_state.page = "👥 Registro de Estudiantes"
+            st.session_state.menu_abierto = False
+            st.rerun()
+            
+        if st.button("📝 **Registro de Limpieza**", use_container_width=True):
+            st.session_state.page = "📝 Registro de Limpieza"
+            st.session_state.menu_abierto = False
+            st.rerun()
+            
+        if st.button("📊 **Historial de Limpieza**", use_container_width=True):
+            st.session_state.page = "📊 Historial de Limpieza"
+            st.session_state.menu_abierto = False
+            st.rerun()
+            
+        st.markdown("---")
+        if st.button("❌ **Cerrar Menú**", use_container_width=True):
+            st.session_state.menu_abierto = False
+            st.rerun()
+            
+        st.markdown('</div>', unsafe_allow_html=True)
+else:
+    # Ocultar sidebar cuando el menú está cerrado
+    st.markdown("""
+    <style>
+        section[data-testid="stSidebar"] {
+            display: none;
+        }
+        .stApp {
+            margin-left: 0;
+        }
+    </style>
+    """, unsafe_allow_html=True)
 
 # FUNCIÓN MEJORADA PARA GENERAR PDF
 def generate_pdf_report(records, week_dates):
@@ -356,6 +392,9 @@ def initialize_session_state():
         st.session_state.editing_student = None
     if 'edit_mode' not in st.session_state:
         st.session_state.edit_mode = False
+    # Estado para página actual
+    if 'page' not in st.session_state:
+        st.session_state.page = "🏠 Inicio"
 
 def get_current_week_dates():
     today = date.today()
@@ -390,10 +429,8 @@ initialize_session_state()
 # Encabezado principal
 st.markdown('<h1 class="main-header">🧹 Sistema de Registro de Limpieza</h1>', unsafe_allow_html=True)
 
-# Sidebar para navegación
-st.sidebar.title("Navegación")
-page = st.sidebar.radio("Selecciona una sección:", 
-                       ["🏠 Inicio", "👥 Registro de Estudiantes", "📝 Registro de Limpieza", "📊 Historial de Limpieza"])
+# Navegación basada en estado de sesión
+page = st.session_state.page
 
 # Página de Inicio
 if page == "🏠 Inicio":
