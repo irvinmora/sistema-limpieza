@@ -42,44 +42,50 @@ except ImportError:
     except Exception:
         PDF_AVAILABLE = False
 
-# Estilos CSS personalizados MEJORADOS
+# Estilos CSS personalizados MEJORADOS para móvil
 st.markdown("""
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
 <style>
     .main-header {
-        font-size: 3.5rem;
+        font-size: 2.5rem;
         color: red;
         text-align: center;
-        margin-bottom: 3rem;
+        margin-bottom: 2rem;
     }
     .section-header {
-        font-size: 1.8rem;
+        font-size: 1.5rem;
         color: blue;
-        border-bottom: 5px solid #2e86ab;
+        border-bottom: 3px solid #2e86ab;
         padding-bottom: 0.5rem;
-        margin-top: 2rem;
+        margin-top: 1.5rem;
     }
     .success-message {
         padding: 1rem;
-        background-color: #fce5cd;
-        border: 10px solid #c3e6cb;
-        border-radius: 1.5rem;
+        background-color: #d4edda;
+        border: 2px solid #c3e6cb;
+        border-radius: 0.5rem;
         color: #155724;
+        margin: 1rem 0;
+        font-size: 1rem;
     }
     .warning-message {
-        padding: 2rem;
+        padding: 1rem;
         background-color: #fff3cd;
-        border: 10px solid #ffeaa7;
+        border: 2px solid #ffeaa7;
         border-radius: 0.5rem;
         color: #856404;
+        margin: 1rem 0;
+        font-size: 1rem;
     }
     .error-message {
         padding: 1rem;
         background-color: #f8d7da;
-        border: 1px solid #f5c6cb;
+        border: 2px solid #f5c6cb;
         border-radius: 0.5rem;
         color: #721c24;
+        margin: 1rem 0;
+        font-size: 1rem;
     }
     
     /* Botón personalizado para el menú */
@@ -109,18 +115,57 @@ st.markdown("""
         padding: 10px;
     }
     
-    /* Prevenir efectos de opacidad */
-    .stApp {
-        background-color: white !important;
+    /* Mejoras para móvil */
+    @media (max-width: 768px) {
+        .main-header {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+        .section-header {
+            font-size: 1.3rem;
+        }
+        .stDataFrame {
+            font-size: 0.8rem;
+        }
+        .stButton button {
+            width: 100%;
+            margin: 5px 0;
+        }
+        .stForm {
+            padding: 10px;
+        }
     }
     
-    /* Eliminar cualquier overlay que cause opacidad */
-    .element-container {
-        opacity: 1 !important;
+    /* Asegurar que los mensajes sean visibles */
+    .stAlert {
+        margin: 10px 0;
+        border-radius: 10px;
+        font-size: 1rem;
     }
     
-    div[data-testid="stForm"] {
-        opacity: 1 !important;
+    /* Mejorar contraste de mensajes */
+    div[data-testid="stSuccess"] {
+        background-color: #d4edda;
+        border: 2px solid #c3e6cb;
+        color: #155724;
+    }
+    
+    div[data-testid="stError"] {
+        background-color: #f8d7da;
+        border: 2px solid #f5c6cb;
+        color: #721c24;
+    }
+    
+    div[data-testid="stWarning"] {
+        background-color: #fff3cd;
+        border: 2px solid #ffeaa7;
+        color: #856404;
+    }
+    
+    div[data-testid="stInfo"] {
+        background-color: #d1ecf1;
+        border: 2px solid #bee5eb;
+        color: #0c5460;
     }
 </style>
 """, unsafe_allow_html=True)
