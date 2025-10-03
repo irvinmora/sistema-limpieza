@@ -516,8 +516,8 @@ elif page == "👥 Registro de Estudiantes":
                 else:
                     # MODO AGREGAR - CORRECCIÓN APLICADA AQUÍ
                     # Verificar si el estudiante ya existe (comparación case-insensitive)
+                      # MODO AGREGAR
                     existing_students = [s['nombre'].upper() for s in st.session_state.students]
-                    
                     if student_name_clean in existing_students:
                         st.error("❌ Este estudiante ya está registrado.")
                     else:
