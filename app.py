@@ -44,8 +44,10 @@ except ImportError:
     except:
         PDF_AVAILABLE = False
         
-# Estilos CSS personalizados MEJORADOS
+# Al inicio del código, después de los imports
+# Estilos CSS personalizados
 st.markdown("""
+            
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
 <style>
@@ -57,7 +59,7 @@ st.markdown("""
     }
     .section-header {
         font-size: 1.8rem;
-        color: blue;
+        color:blue ;
         border-bottom: 5px solid #2e86ab;
         padding-bottom: 0.5rem;
         margin-top: 2rem;
@@ -82,29 +84,88 @@ st.markdown("""
         border: 1px solid #f5c6cb;
         border-radius: 0.5rem;
         color: #721c24;
-    }
-    
-    /* Botón de menú SIMPLE y FUNCIONAL */
-    .stButton button {
-        width: 100%;
-    }
-    
-    .menu-button {
-        background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
+        /* Botón de menú móvil MEJORADO */
+    .mobile-menu-btn {
+        position: fixed;
+        top: 15px;
+        left: 15px;
+        z-index: 9999;
+        background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
         color: white;
         border: none;
-        border-radius: 10px;
-        padding: 10px 20px;
-        font-size: 16px;
+        border-radius: 12px;
+        width: auto;
+        height: 60px;
+        font-size: 1.1rem;
         font-weight: bold;
         cursor: pointer;
-        margin: 10px 0;
+        box-shadow: 0 6px 20px rgba(0, 123, 255, 0.6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 25px;
+        min-width: 140px;
         transition: all 0.3s ease;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        gap: 8px;
     }
-    
-    .menu-button:hover {
-        background: linear-gradient(135deg, #FF8E53 0%, #FF6B6B 100%);
+
+    .mobile-menu-btn:hover {
+        background: linear-gradient(135deg, #0056b3 0%, #004085 100%);
         transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 123, 255, 0.8);
+    }
+
+    .mobile-menu-btn:active {
+        transform: translateY(0);
+        box-shadow: 0 4px 15px rgba(0, 123, 255, 0.6);
+    }
+
+    /* Efecto de pulso para llamar más la atención */
+    @keyframes pulse-glow {
+        0% {
+            box-shadow: 0 6px 20px rgba(0, 123, 255, 0.6);
+        }
+        50% {
+            box-shadow: 0 6px 30px rgba(0, 123, 255, 0.9);
+        }
+        100% {
+            box-shadow: 0 6px 20px rgba(0, 123, 255, 0.6);
+        }
+    }
+
+    .mobile-menu-btn {
+        animation: pulse-glow 2s infinite;
+    }
+
+    /* Icono dentro del botón */
+    .mobile-menu-btn i {
+        font-size: 1.3rem;
+    }
+
+    /* Para móviles específicamente */
+    @media (max-width: 768px) {
+        .mobile-menu-btn {
+            top: 10px;
+            left: 10px;
+            height: 55px;
+            min-width: 130px;
+            font-size: 1rem;
+            padding: 0 20px;
+        }
+        
+        .mobile-menu-btn i {
+            font-size: 1.2rem;
+        }
+    }
+
+    /* Para tablets */
+    @media (min-width: 769px) and (max-width: 1024px) {
+        .mobile-menu-btn {
+            top: 12px;
+            left: 12px;
+        }
     }
 </style>
 """, unsafe_allow_html=True)
@@ -326,42 +387,13 @@ def update_cleaning_records_after_edit(old_name, new_name):
 
 initialize_session_state()
 
-# BOTÓN DE MENÚ SIMPLE Y FUNCIONAL EN LA BARRA LATERAL
-with st.sidebar:
-    st.title("🧭 Navegación")
-    st.markdown("---")
-    
-    # Botones de navegación en el sidebar
-    if st.button("🏠 **INICIO**", use_container_width=True, type="primary"):
-        st.session_state.page = "🏠 Inicio"
-        st.rerun()
-        
-    if st.button("👥 **REGISTRO DE ESTUDIANTES**", use_container_width=True):
-        st.session_state.page = "👥 Registro de Estudiantes"
-        st.rerun()
-        
-    if st.button("📝 **REGISTRO DE LIMPIEZA**", use_container_width=True):
-        st.session_state.page = "📝 Registro de Limpieza"
-        st.rerun()
-        
-    if st.button("📊 **HISTORIAL DE LIMPIEZA**", use_container_width=True):
-        st.session_state.page = "📊 Historial de Limpieza"
-        st.rerun()
-
 # Encabezado principal
 st.markdown('<h1 class="main-header">🧹 Sistema de Registro de Limpieza</h1>', unsafe_allow_html=True)
 
-# Mostrar botón para abrir/cerrar menú en móviles (opcional)
-col1, col2, col3 = st.columns([1, 2, 1])
-with col1:
-    st.info("💡 **Menú de Navegación**")
-    st.write("Usa la barra lateral para navegar entre las secciones")
-
-# Navegación basada en estado de sesión
-if 'page' not in st.session_state:
-    st.session_state.page = "🏠 Inicio"
-
-page = st.session_state.page
+# Sidebar para navegación
+st.sidebar.title("Navegación")
+page = st.sidebar.radio("Selecciona una sección:", 
+                       ["🏠 Inicio", "👥 Registro de Estudiantes", "📝 Registro de Limpieza", "📊 Historial de Limpieza"])
 
 # Página de Inicio
 if page == "🏠 Inicio":
