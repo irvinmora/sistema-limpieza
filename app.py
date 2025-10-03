@@ -48,29 +48,29 @@ except ImportError:
 st.markdown("""
 <style>
     .main-header {
-        font-size: 2.5rem;
+        font-size: 3.5rem;
         color: red;
         text-align: center;
-        margin-bottom: 2rem;
+        margin-bottom: 3rem;
     }
     .section-header {
         font-size: 1.8rem;
         color:blue ;
-        border-bottom: 2px solid #2e86ab;
+        border-bottom: 5px solid #2e86ab;
         padding-bottom: 0.5rem;
         margin-top: 2rem;
     }
     .success-message {
         padding: 1rem;
         background-color: #fce5cd;
-        border: 1px solid #c3e6cb;
-        border-radius: 0.5rem;
+        border: 10px solid #c3e6cb;
+        border-radius: 1.5rem;
         color: #155724;
     }
     .warning-message {
-        padding: 1rem;
+        padding: 2rem;
         background-color: #fff3cd;
-        border: 1px solid #ffeaa7;
+        border: 10px solid #ffeaa7;
         border-radius: 0.5rem;
         color: #856404;
     }
