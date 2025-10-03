@@ -391,8 +391,8 @@ initialize_session_state()
 st.markdown('<h1 class="main-header">🧹 Sistema de Registro de Limpieza</h1>', unsafe_allow_html=True)
 
 # Sidebar para navegación
-st.altair_chart.title("Navegación")
-page = st.altair_chart.radio("Selecciona una sección:", 
+st.sidebar.title("Navegación")
+page = st.sidebar.radio("Selecciona una sección:", 
                        ["🏠 Inicio", "👥 Registro de Estudiantes", "📝 Registro de Limpieza", "📊 Historial de Limpieza"])
 
 # Página de Inicio
