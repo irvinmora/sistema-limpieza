@@ -14,7 +14,7 @@ st.set_page_config(
     page_title="Sistema de Registro de Limpieza",
     page_icon="🧹",
     layout="wide",
-    initial_sidebar_state="expanded"  # Cambiado a expanded para que el menú sea visible
+    initial_sidebar_state="expanded"
 )
 
 # Intentar importar reportlab silenciosamente
@@ -27,13 +27,11 @@ try:
     from reportlab.lib.units import inch
     PDF_AVAILABLE = True
 except ImportError:
-    # Intentar instalar reportlab solo si no está disponible
     try:
         import subprocess
         import sys
         subprocess.check_call([sys.executable, "-m", "pip", "install", "reportlab"], 
                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        # Reintentar importación después de la instalación
         from reportlab.lib.pagesizes import letter, A4
         from reportlab.pdfgen import canvas
         from reportlab.lib.styles import getSampleStyleSheet
@@ -111,21 +109,18 @@ st.markdown("""
         padding: 10px;
     }
     
-    /* Ocultar el botón nativo de Streamlit */
-    .css-1d391kg {display: none;}
-    
-    /* Prevenir efectos de opacidad en la pantalla */
+    /* Prevenir efectos de opacidad */
     .stApp {
-        background-color: white;
+        background-color: white !important;
     }
     
-    /* Estilo para mensajes de éxito */
-    .stSuccess {
-        background-color: #d4edda;
-        border: 1px solid #c3e6cb;
-        border-radius: 0.5rem;
-        color: #155724;
-        padding: 1rem;
+    /* Eliminar cualquier overlay que cause opacidad */
+    .element-container {
+        opacity: 1 !important;
+    }
+    
+    div[data-testid="stForm"] {
+        opacity: 1 !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -150,7 +145,6 @@ def load_data(filename):
             if isinstance(data, list):
                 return data
             else:
-                # si el contenido no es lista, reescribir
                 with open(filepath, "w", encoding="utf-8") as f:
                     json.dump([], f, ensure_ascii=False, indent=2)
                 return []
@@ -173,11 +167,6 @@ def save_data(data, filename):
         with open(tmp_path, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
             f.flush()
-            try:
-                os.fsync(f.fileno())
-            except Exception:
-                # os.fsync puede fallar en algunos sistemas de archivos (ej: Windows en ciertos entornos)
-                pass
         os.replace(tmp_path, filepath)
         return True
     except Exception as e:
@@ -186,56 +175,32 @@ def save_data(data, filename):
 
 
 def initialize_session_state():
-    # Cargar datos al inicio
-    if 'students' not in st.session_state:
+    """Inicializa el estado de la sesión una sola vez"""
+    if 'initialized' not in st.session_state:
         st.session_state.students = load_data("students.json")
-
-    if 'cleaning_history' not in st.session_state:
         st.session_state.cleaning_history = load_data("cleaning_history.json")
-
-    # Estado para edición
-    if 'editing_student' not in st.session_state:
         st.session_state.editing_student = None
-
-    if 'edit_mode' not in st.session_state:
         st.session_state.edit_mode = False
-
-    # Estado para página actual
-    if 'page' not in st.session_state:
         st.session_state.page = "🏠 Inicio"
-
-    # Estados para eliminación segura
-    if 'pending_delete' not in st.session_state:
         st.session_state.pending_delete = None
-    if 'show_confirm_delete' not in st.session_state:
         st.session_state.show_confirm_delete = False
-        
-    # Estado para controlar re-renders
-    if 'form_submitted' not in st.session_state:
-        st.session_state.form_submitted = False
+        st.session_state.initialized = True
 
 
 def get_current_week_dates():
-    # Usar datetime.timedelta en vez de pd.Timedelta para evitar problemas de tipos
     today = date.today()
     start_of_week = today - timedelta(days=today.weekday())
-    # Devolver sólo Lunes-Viernes
     return [start_of_week + timedelta(days=i) for i in range(5)]
 
 
-# FUNCIÓN MEJORADA PARA GENERAR PDF (se mantiene similar)
 def generate_pdf_report(records, week_dates):
     try:
         if not PDF_AVAILABLE:
             raise ImportError("reportlab no está disponible")
 
-        # Crear directorio de reportes si no existe
         os.makedirs("reportes", exist_ok=True)
-
-        # Nombre del archivo
         pdf_path = f"reportes/reporte_limpieza_semana_{date.today().strftime('%Y-%m-%d')}.pdf"
 
-        # Crear el documento PDF
         doc = SimpleDocTemplate(
             pdf_path,
             pagesize=A4,
@@ -245,11 +210,9 @@ def generate_pdf_report(records, week_dates):
             bottomMargin=18
         )
 
-        # Contenido del PDF
         story = []
         styles = getSampleStyleSheet()
 
-        # Título
         from reportlab.lib.styles import ParagraphStyle
         from reportlab.lib.enums import TA_CENTER
 
@@ -264,7 +227,6 @@ def generate_pdf_report(records, week_dates):
         title = Paragraph("REPORTE SEMANAL DE LIMPIEZA", title_style)
         story.append(title)
 
-        # Información de la semana
         week_info_style = ParagraphStyle(
             'WeekInfo',
             parent=styles['Normal'],
@@ -280,9 +242,7 @@ def generate_pdf_report(records, week_dates):
 
         story.append(Spacer(1, 20))
 
-        # Preparar datos para la tabla
         if records:
-            # Encabezados de la tabla
             table_data = [['Fecha', 'Día', 'Estudiantes', 'Área', 'Hora']]
 
             for record in records:
@@ -300,7 +260,6 @@ def generate_pdf_report(records, week_dates):
                     record.get('hora', '')
                 ])
 
-            # Crear tabla
             table = Table(table_data, colWidths=[70, 60, 180, 60, 50])
             table.setStyle(TableStyle([
                 ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2e86ab')),
@@ -318,7 +277,6 @@ def generate_pdf_report(records, week_dates):
 
             story.append(table)
 
-            # Estadísticas
             story.append(Spacer(1, 25))
 
             stats_style = ParagraphStyle(
@@ -342,7 +300,6 @@ def generate_pdf_report(records, week_dates):
             stats = Paragraph(stats_text, stats_style)
             story.append(stats)
         else:
-            # Mensaje cuando no hay registros
             no_data_style = ParagraphStyle(
                 'NoData',
                 parent=styles['Normal'],
@@ -353,7 +310,6 @@ def generate_pdf_report(records, week_dates):
             no_data = Paragraph("No hay registros de limpieza para esta semana.", no_data_style)
             story.append(no_data)
 
-        # Pie de página
         story.append(Spacer(1, 30))
         footer_style = ParagraphStyle(
             'Footer',
@@ -368,7 +324,6 @@ def generate_pdf_report(records, week_dates):
         )
         story.append(footer)
 
-        # Generar PDF
         doc.build(story)
         return pdf_path
 
@@ -377,11 +332,8 @@ def generate_pdf_report(records, week_dates):
         return None
 
 
-# FUNCIÓN PARA ACTUALIZAR REGISTROS DE LIMPIEZA CUANDO SE ELIMINA UN ESTUDIANTE
 def update_cleaning_records_after_deletion(student_name, remove_empty_records=True):
-    """Elimina al estudiante de todos los registros de limpieza donde aparece.
-    Si remove_empty_records es True, también elimina registros que se quedan sin estudiantes.
-    """
+    """Elimina al estudiante de todos los registros de limpieza donde aparece."""
     updated_records = []
     for record in st.session_state.cleaning_history:
         students_list = record.get('estudiantes', [])
@@ -392,7 +344,6 @@ def update_cleaning_records_after_deletion(student_name, remove_empty_records=Tr
     return updated_records
 
 
-# FUNCIÓN PARA ACTUALIZAR REGISTROS DE LIMPIEZA CUANDO SE EDITA UN ESTUDIANTE
 def update_cleaning_records_after_edit(old_name, new_name):
     """Actualiza el nombre del estudiante en todos los registros de limpieza"""
     for record in st.session_state.cleaning_history:
@@ -414,25 +365,21 @@ with st.sidebar:
     if st.button("🏠 **INICIO**", use_container_width=True, 
                 type="primary" if st.session_state.page == "🏠 Inicio" else "secondary"):
         st.session_state.page = "🏠 Inicio"
-        st.session_state.form_submitted = False
         st.rerun()
         
     if st.button("👥 **REGISTRO DE ESTUDIANTES**", use_container_width=True,
                 type="primary" if st.session_state.page == "👥 Registro de Estudiantes" else "secondary"):
         st.session_state.page = "👥 Registro de Estudiantes"
-        st.session_state.form_submitted = False
         st.rerun()
         
     if st.button("📝 **REGISTRO DE LIMPIEZA**", use_container_width=True,
                 type="primary" if st.session_state.page == "📝 Registro de Limpieza" else "secondary"):
         st.session_state.page = "📝 Registro de Limpieza"
-        st.session_state.form_submitted = False
         st.rerun()
         
     if st.button("📊 **HISTORIAL DE LIMPIEZA**", use_container_width=True,
                 type="primary" if st.session_state.page == "📊 Historial de Limpieza" else "secondary"):
         st.session_state.page = "📊 Historial de Limpieza"
-        st.session_state.form_submitted = False
         st.rerun()
     
     st.markdown("---")
@@ -501,14 +448,12 @@ elif page == "👥 Registro de Estudiantes":
         
         with col1:
             if st.session_state.edit_mode and st.session_state.editing_student:
-                # Modo edición
                 student_name = st.text_input(
                     "Nombre completo del estudiante:",
                     value=st.session_state.editing_student['nombre'],
                     key="edit_student_name"
                 )
             else:
-                # Modo agregar
                 student_name = st.text_input("Nombre completo del estudiante:", key="student_name")
         
         with col2:
@@ -530,10 +475,10 @@ elif page == "👥 Registro de Estudiantes":
         
         with col2:
             if st.session_state.edit_mode:
-                if st.form_submit_button("❌ Cancelar Edición"):
+                cancel_submitted = st.form_submit_button("❌ Cancelar Edición")
+                if cancel_submitted:
                     st.session_state.edit_mode = False
                     st.session_state.editing_student = None
-                    st.session_state.form_submitted = False
                     st.rerun()
         
         if submitted:
@@ -561,15 +506,15 @@ elif page == "👥 Registro de Estudiantes":
                         # Actualizar registros de limpieza
                         update_cleaning_records_after_edit(old_name, student_name_clean)
                         
-                        if save_data(st.session_state.students, "students.json") and save_data(st.session_state.leaning_history, "cleaning_history.json"):
+                        if save_data(st.session_state.students, "students.json") and save_data(st.session_state.cleaning_history, "cleaning_history.json"):
                             st.success("✅ Estudiante actualizado exitosamente!")
                             st.session_state.edit_mode = False
                             st.session_state.editing_student = None
-                            st.session_state.form_submitted = True
+                            st.rerun()
                         else:
                             st.error("❌ Error al guardar los cambios.")
                 else:
-                    # MODO AGREGAR - CORRECCIÓN APLICADA AQUÍ
+                    # MODO AGREGAR
                     existing_students = [s['nombre'].upper() for s in st.session_state.students]
                     if student_name_clean in existing_students:
                         st.error("❌ Este estudiante ya está registrado.")
@@ -582,7 +527,7 @@ elif page == "👥 Registro de Estudiantes":
                         st.session_state.students.append(new_student)
                         if save_data(st.session_state.students, "students.json"):
                             st.success("✅ Estudiante registrado exitosamente!")
-                            st.session_state.form_submitted = True
+                            st.rerun()
                         else:
                             st.error("❌ Error al guardar el estudiante.")
             else:
@@ -619,7 +564,6 @@ elif page == "👥 Registro de Estudiantes":
                 if student:
                     st.session_state.editing_student = student
                     st.session_state.edit_mode = True
-                    st.session_state.form_submitted = False
                     st.rerun()
         
         with col2:
@@ -630,7 +574,7 @@ elif page == "👥 Registro de Estudiantes":
                 key="delete_select"
             )
 
-            # Calcular en cuántos registros aparece (se recalcula dinámicamente)
+            # Calcular en cuántos registros aparece
             cleaning_count = sum(1 for record in st.session_state.cleaning_history 
                                  if student_to_delete in record.get('estudiantes', []))
 
@@ -638,38 +582,48 @@ elif page == "👥 Registro de Estudiantes":
                 st.warning(f"⚠️ **Advertencia:** Este estudiante aparece en **{cleaning_count}** registros de limpieza.")
                 st.info("💡 **Nota:** Al confirmar, se eliminará el estudiante de todos esos registros.")
 
-            # Botón para iniciar el proceso de eliminación (muestra confirmación en la misma UI)
-            if st.button("❌ Eliminar Estudiante", key="delete_button"):
-                st.session_state.pending_delete = student_to_delete
-                st.session_state.show_confirm_delete = True
-                st.session_state.form_submitted = False
-                st.rerun()
-
-            # Mostrar panel de confirmación si hay una eliminación pendiente para el mismo estudiante seleccionado
+            # Si hay una eliminación pendiente para mostrar
             if st.session_state.show_confirm_delete and st.session_state.pending_delete == student_to_delete:
                 st.error("🚨 **¡ADVERTENCIA!** Esta acción quitará al estudiante de todos los registros donde aparece.")
-                option = st.radio("¿Qué hacer con los registros que queden sin estudiantes?", ("Eliminar registros vacíos", "Conservar registros (dejar campo vacío)"), index=0)
+                option = st.radio("¿Qué hacer con los registros que queden sin estudiantes?", 
+                                 ("Eliminar registros vacíos", "Conservar registros (dejar campo vacío)"), 
+                                 key="delete_option")
+                
+                col_confirm, col_cancel = st.columns(2)
+                with col_confirm:
+                    if st.button("✅ Confirmar eliminación", key="confirm_delete"):
+                        # Eliminar estudiante de la lista de estudiantes
+                        st.session_state.students = [s for s in st.session_state.students if s['nombre'] != student_to_delete]
 
-                if st.button("✅ Confirmar eliminación"):
-                    # Eliminar estudiante de la lista de estudiantes
-                    st.session_state.students = [s for s in st.session_state.students if s['nombre'] != student_to_delete]
+                        # Actualizar historial según la opción elegida
+                        remove_empty = (option == "Eliminar registros vacíos")
+                        st.session_state.cleaning_history = update_cleaning_records_after_deletion(student_to_delete, remove_empty_records=remove_empty)
 
-                    # Actualizar historial según la opción elegida
-                    st.session_state.cleaning_history = update_cleaning_records_after_deletion(student_to_delete, remove_empty_records=(option == "Eliminar registros vacíos"))
+                        # Guardar ambos archivos
+                        saved_students = save_data(st.session_state.students, "students.json")
+                        saved_history = save_data(st.session_state.cleaning_history, "cleaning_history.json")
 
-                    # Guardar ambos archivos de forma atómica
-                    saved_students = save_data(st.session_state.students, "students.json")
-                    saved_history = save_data(st.session_state.cleaning_history, "cleaning_history.json")
+                        # Limpiar el estado de confirmación
+                        st.session_state.pending_delete = None
+                        st.session_state.show_confirm_delete = False
 
-                    # Limpiar el estado de confirmación
-                    st.session_state.pending_delete = None
-                    st.session_state.show_confirm_delete = False
-                    st.session_state.form_submitted = True
-
-                    if saved_students and saved_history:
-                        st.success("✅ Estudiante eliminado y registros actualizados exitosamente!")
-                    else:
-                        st.error("❌ Error al guardar los cambios. Verifique permisos de escritura en la carpeta 'data'.")
+                        if saved_students and saved_history:
+                            st.success("✅ Estudiante eliminado y registros actualizados exitosamente!")
+                            st.rerun()
+                        else:
+                            st.error("❌ Error al guardar los cambios.")
+                
+                with col_cancel:
+                    if st.button("❌ Cancelar eliminación", key="cancel_delete"):
+                        st.session_state.pending_delete = None
+                        st.session_state.show_confirm_delete = False
+                        st.rerun()
+            else:
+                # Botón para iniciar el proceso de eliminación
+                if st.button("❌ Eliminar Estudiante", key="delete_button"):
+                    st.session_state.pending_delete = student_to_delete
+                    st.session_state.show_confirm_delete = True
+                    st.rerun()
 
     else:
         st.info("📝 No hay estudiantes registrados aún.")
@@ -715,7 +669,7 @@ elif page == "📝 Registro de Limpieza":
                     if save_data(st.session_state.cleaning_history, "cleaning_history.json"):
                         st.success("✅ Limpieza registrada exitosamente!")
                         st.balloons()
-                        st.session_state.form_submitted = True
+                        st.rerun()
                     else:
                         st.error("❌ Error al guardar el registro de limpieza.")
 
