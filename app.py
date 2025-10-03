@@ -42,7 +42,7 @@ except ImportError:
     except Exception:
         PDF_AVAILABLE = False
 
-# ESTILOS CSS MEJORADOS - CORREGIDOS PARA MÓVIL
+# ESTILOS CSS MEJORADOS - ESPECÍFICOS PARA MÓVIL
 st.markdown("""
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
@@ -93,7 +93,7 @@ st.markdown("""
         opacity: 1 !important;
     }
     
-    /* MEJORAS ESPECÍFICAS PARA MÓVIL */
+    /* MEJORAS ESPECÍFICAS PARA MÓVIL - CORREGIDAS */
     @media (max-width: 768px) {
         .main-header {
             font-size: 1.8rem;
@@ -118,14 +118,60 @@ st.markdown("""
         /* BOTONES EN MÓVIL */
         .stButton button {
             width: 100%;
-            margin: 5px 0;
+            margin: 8px 0;
             font-size: 0.9rem;
+            min-height: 44px;
+        }
+        
+        /* COLUMNAS EN MÓVIL */
+        .stColumns {
+            flex-direction: column;
+        }
+        
+        .stColumn {
+            width: 100% !important;
+            margin-bottom: 1rem;
+        }
+        
+        /* SELECTBOX EN MÓVIL */
+        .stSelectbox {
+            margin-bottom: 1rem;
         }
         
         /* TABLAS EN MÓVIL */
         .stDataFrame {
             font-size: 0.8rem;
+            overflow-x: auto;
         }
+        
+        /* ESPACIADO MEJORADO PARA GESTIÓN DE ESTUDIANTES */
+        .student-management-section {
+            margin-top: 1rem;
+            padding: 1rem;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            background-color: #f9f9f9;
+        }
+    }
+    
+    /* ESTILOS ESPECÍFICOS PARA GESTIÓN DE ESTUDIANTES */
+    .student-management-container {
+        margin-top: 2rem;
+    }
+    
+    .management-section {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        border: 1px solid #dee2e6;
+    }
+    
+    .management-title {
+        font-size: 1.2rem;
+        color: #495057;
+        margin-bottom: 1rem;
+        font-weight: 600;
     }
     
     /* MENSAJES DE ÉXITO/ERROR MÁS VISIBLES */
@@ -465,12 +511,14 @@ if page == "🏠 Inicio":
     except Exception as e:
         st.error(f"Error al cargar el resumen semanal: {e}")
 
-# Página de Registro de Estudiantes
+# Página de Registro de Estudiantes - COMPLETAMENTE REDISEÑADA PARA MÓVIL
 elif page == "👥 Registro de Estudiantes":
     st.markdown('<h2 class="section-header">👥 Gestión de Estudiantes</h2>', unsafe_allow_html=True)
     
     # Formulario para agregar/editar estudiantes
     with st.form("student_form", clear_on_submit=True):
+        st.subheader("📝 Formulario de Estudiante")
+        
         col1, col2 = st.columns(2)
         
         with col1:
@@ -493,16 +541,17 @@ elif page == "👥 Registro de Estudiantes":
             else:
                 student_id = st.text_input("ID o Matrícula (opcional):", key="student_id")
         
+        # Botones en una sola fila pero responsive
         col1, col2 = st.columns(2)
         with col1:
             if st.session_state.edit_mode:
-                submitted = st.form_submit_button("💾 Guardar Cambios")
+                submitted = st.form_submit_button("💾 Guardar Cambios", use_container_width=True)
             else:
-                submitted = st.form_submit_button("👤 Agregar Estudiante")
+                submitted = st.form_submit_button("👤 Agregar Estudiante", use_container_width=True)
         
         with col2:
             if st.session_state.edit_mode:
-                cancel_button = st.form_submit_button("❌ Cancelar Edición")
+                cancel_button = st.form_submit_button("❌ Cancelar", use_container_width=True)
             else:
                 cancel_button = False
         
@@ -573,70 +622,77 @@ elif page == "👥 Registro de Estudiantes":
             st.rerun()
     
     # Lista de estudiantes registrados
-    st.markdown('<h2 class="section-header">📋 Lista de Estudiantes</h2>', unsafe_allow_html=True)
+    st.markdown('<h2 class="section-header">📋 Lista de Estudiantes Registrados</h2>', unsafe_allow_html=True)
     
     if st.session_state.students:
-        # Mostrar tabla de estudiantes
+        # Mostrar tabla de estudiantes simplificada para móvil
         students_df = pd.DataFrame(st.session_state.students)
         
-        # Agregar columna de acciones
+        # Para móvil, mostrar una tabla más simple
         display_df = students_df[['nombre', 'id']].copy()
-        display_df['Acciones'] = "Editar | Eliminar"
+        display_df.columns = ['Nombre', 'ID']
         
-        st.dataframe(display_df, use_container_width=True)
+        st.dataframe(display_df, use_container_width=True, height=300)
         
-        # Gestión de estudiantes (Editar/Eliminar)
+        # GESTIÓN DE ESTUDIANTES - REDISEÑADO COMPLETAMENTE PARA MÓVIL
+        st.markdown("---")
+        st.markdown('<div class="student-management-container">', unsafe_allow_html=True)
         st.markdown("### 🔧 Gestión de Estudiantes")
+        st.info("Selecciona un estudiante y realiza acciones específicas:")
         
-        col1, col2 = st.columns(2)
+        # Selección única de estudiante para ambas operaciones
+        student_selected = st.selectbox(
+            "Selecciona un estudiante:",
+            [s['nombre'] for s in st.session_state.students],
+            key="student_selection",
+            index=0
+        )
         
-        with col1:
-            st.subheader("✏️ Editar Estudiante")
-            student_to_edit = st.selectbox(
-                "Selecciona un estudiante para editar:",
-                [s['nombre'] for s in st.session_state.students],
-                key="edit_select"
-            )
-            
-            if st.button("📝 Editar Estudiante", key="edit_button"):
-                student = next((s for s in st.session_state.students if s['nombre'] == student_to_edit), None)
+        # BOTONES DE ACCIÓN EN COLUMNAS SEPARADAS
+        col_edit, col_delete = st.columns(2)
+        
+        with col_edit:
+            st.markdown('<div class="management-section">', unsafe_allow_html=True)
+            st.markdown('<div class="management-title">✏️ Editar Estudiante</div>', unsafe_allow_html=True)
+            if st.button("📝 Editar Estudiante Seleccionado", use_container_width=True, key="edit_button"):
+                student = next((s for s in st.session_state.students if s['nombre'] == student_selected), None)
                 if student:
                     st.session_state.editing_student = student
                     st.session_state.edit_mode = True
                     st.rerun()
+            st.markdown('</div>', unsafe_allow_html=True)
         
-        with col2:
-            st.subheader("🗑️ Eliminar Estudiante")
-            student_to_delete = st.selectbox(
-                "Selecciona un estudiante para eliminar:",
-                [s['nombre'] for s in st.session_state.students],
-                key="delete_select"
-            )
-
+        with col_delete:
+            st.markdown('<div class="management-section">', unsafe_allow_html=True)
+            st.markdown('<div class="management-title">🗑️ Eliminar Estudiante</div>', unsafe_allow_html=True)
+            
             # Calcular en cuántos registros aparece
             cleaning_count = sum(1 for record in st.session_state.cleaning_history 
-                                 if student_to_delete in record.get('estudiantes', []))
+                                 if student_selected in record.get('estudiantes', []))
 
             if cleaning_count > 0:
-                st.warning(f"⚠️ **Advertencia:** Este estudiante aparece en **{cleaning_count}** registros de limpieza.")
-                st.info("💡 **Nota:** Al confirmar, se eliminará el estudiante de todos esos registros.")
+                st.warning(f"⚠️ Aparece en **{cleaning_count}** registros")
 
             # Si hay una eliminación pendiente para mostrar
-            if st.session_state.show_confirm_delete and st.session_state.pending_delete == student_to_delete:
-                st.error("🚨 **¡ADVERTENCIA!** Esta acción quitará al estudiante de todos los registros donde aparece.")
-                option = st.radio("¿Qué hacer con los registros que queden sin estudiantes?", 
-                                 ("Eliminar registros vacíos", "Conservar registros (dejar campo vacío)"), 
-                                 key="delete_option")
+            if st.session_state.show_confirm_delete and st.session_state.pending_delete == student_selected:
+                st.error("🚨 **¡CONFIRMACIÓN REQUERIDA!**")
+                st.warning("Esta acción no se puede deshacer.")
+                
+                option = st.radio(
+                    "¿Qué hacer con los registros de limpieza?",
+                    ["Eliminar registros vacíos", "Conservar registros (dejar campo vacío)"],
+                    key="delete_option"
+                )
                 
                 col_confirm, col_cancel = st.columns(2)
                 with col_confirm:
-                    if st.button("✅ Confirmar eliminación", key="confirm_delete"):
+                    if st.button("✅ CONFIRMAR", use_container_width=True, type="primary", key="confirm_delete"):
                         # Eliminar estudiante de la lista de estudiantes
-                        st.session_state.students = [s for s in st.session_state.students if s['nombre'] != student_to_delete]
+                        st.session_state.students = [s for s in st.session_state.students if s['nombre'] != student_selected]
 
                         # Actualizar historial según la opción elegida
                         remove_empty = (option == "Eliminar registros vacíos")
-                        st.session_state.cleaning_history = update_cleaning_records_after_deletion(student_to_delete, remove_empty_records=remove_empty)
+                        st.session_state.cleaning_history = update_cleaning_records_after_deletion(student_selected, remove_empty_records=remove_empty)
 
                         # Guardar ambos archivos
                         saved_students = save_data(st.session_state.students, "students.json")
@@ -655,19 +711,23 @@ elif page == "👥 Registro de Estudiantes":
                         st.rerun()
                 
                 with col_cancel:
-                    if st.button("❌ Cancelar eliminación", key="cancel_delete"):
+                    if st.button("❌ CANCELAR", use_container_width=True, key="cancel_delete"):
                         st.session_state.pending_delete = None
                         st.session_state.show_confirm_delete = False
                         st.rerun()
             else:
                 # Botón para iniciar el proceso de eliminación
-                if st.button("❌ Eliminar Estudiante", key="delete_button"):
-                    st.session_state.pending_delete = student_to_delete
+                if st.button("❌ Eliminar Estudiante", use_container_width=True, key="delete_button"):
+                    st.session_state.pending_delete = student_selected
                     st.session_state.show_confirm_delete = True
                     st.rerun()
+            
+            st.markdown('</div>', unsafe_allow_html=True)
+        
+        st.markdown('</div>', unsafe_allow_html=True)
 
     else:
-        st.info("📝 No hay estudiantes registrados aún.")
+        st.info("📝 No hay estudiantes registrados aún. Usa el formulario arriba para agregar el primero.")
 
 # Página de Registro de Limpieza
 elif page == "📝 Registro de Limpieza":
@@ -712,7 +772,7 @@ elif page == "📝 Registro de Limpieza":
                 )
         
         # BOTÓN DE SUBMIT - CORREGIDO
-        submitted = st.form_submit_button("📝 Registrar Limpieza")
+        submitted = st.form_submit_button("📝 Registrar Limpieza", use_container_width=True)
         
         if submitted:
             students_selected = [s for s in [student1, student2, student3] if s and s.strip()]
