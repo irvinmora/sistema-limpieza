@@ -42,57 +42,102 @@ except ImportError:
     except Exception:
         PDF_AVAILABLE = False
 
-# Estilos CSS personalizados MEJORADOS para móvil
+# ESTILOS CSS MEJORADOS - CORREGIDOS PARA MÓVIL
 st.markdown("""
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
 <style>
+    /* FONDO FIJO Y ESTABLE */
+    .stApp {
+        background-color: white !important;
+        background-image: none !important;
+    }
+    
+    /* ELIMINAR EFECTOS DE OPACIDAD */
+    section.main > div:first-child {
+        background-color: white;
+        opacity: 1 !important;
+    }
+    
     .main-header {
         font-size: 2.5rem;
-        color: red;
+        color: #1f77b4;
         text-align: center;
         margin-bottom: 2rem;
+        padding: 1rem;
     }
+    
     .section-header {
         font-size: 1.5rem;
-        color: blue;
+        color: #2e86ab;
         border-bottom: 3px solid #2e86ab;
         padding-bottom: 0.5rem;
         margin-top: 1.5rem;
+        margin-bottom: 1rem;
     }
     
-    /* Prevenir efectos de opacidad y pantalla blanca */
-    .stApp {
-        background-color: white;
-    }
-    
-    .element-container {
+    /* CONTENEDORES PRINCIPALES */
+    .block-container {
+        padding-top: 2rem;
+        padding-bottom: 2rem;
         opacity: 1 !important;
     }
     
+    /* FORMULARIOS VISIBLES */
     div[data-testid="stForm"] {
+        background-color: white;
+        border: 1px solid #e6e6e6;
+        border-radius: 10px;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
         opacity: 1 !important;
     }
     
-    /* Mejoras para móvil */
+    /* MEJORAS ESPECÍFICAS PARA MÓVIL */
     @media (max-width: 768px) {
         .main-header {
-            font-size: 2rem;
+            font-size: 1.8rem;
             margin-bottom: 1rem;
+            padding: 0.5rem;
         }
+        
         .section-header {
             font-size: 1.3rem;
         }
-        .stDataFrame {
-            font-size: 0.8rem;
+        
+        .block-container {
+            padding-top: 1rem;
+            padding-bottom: 1rem;
         }
+        
+        div[data-testid="stForm"] {
+            padding: 1rem;
+            margin: 0.5rem;
+        }
+        
+        /* BOTONES EN MÓVIL */
         .stButton button {
             width: 100%;
             margin: 5px 0;
+            font-size: 0.9rem;
         }
-        .stForm {
-            padding: 10px;
+        
+        /* TABLAS EN MÓVIL */
+        .stDataFrame {
+            font-size: 0.8rem;
         }
+    }
+    
+    /* MENSAJES DE ÉXITO/ERROR MÁS VISIBLES */
+    .stAlert {
+        opacity: 1 !important;
+        margin: 10px 0;
+    }
+    
+    /* ESPACIADO MEJORADO */
+    .element-container {
+        margin-bottom: 1rem;
+        opacity: 1 !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -155,6 +200,11 @@ def initialize_session_state():
         st.session_state.show_confirm_delete = False
         st.session_state.initialized = True
         st.session_state.cleaning_form_key = 0
+        # NUEVOS ESTADOS PARA MENSAJES
+        st.session_state.show_success_message = False
+        st.session_state.success_message = ""
+        st.session_state.show_error_message = False
+        st.session_state.error_message = ""
 
 
 def get_current_week_dates():
@@ -324,6 +374,17 @@ def update_cleaning_records_after_edit(old_name, new_name):
 # Inicializar estado de la sesión
 initialize_session_state()
 
+# MOSTRAR MENSAJES DE ÉXITO/ERROR SI EXISTEN
+if st.session_state.show_success_message:
+    st.success(st.session_state.success_message)
+    st.session_state.show_success_message = False
+    st.session_state.success_message = ""
+
+if st.session_state.show_error_message:
+    st.error(st.session_state.error_message)
+    st.session_state.show_error_message = False
+    st.session_state.error_message = ""
+
 # MENÚ DE NAVEGACIÓN EN SIDEBAR - SIEMPRE VISIBLE
 with st.sidebar:
     st.markdown("## 🧭 Menú de Navegación")
@@ -445,7 +506,7 @@ elif page == "👥 Registro de Estudiantes":
             else:
                 cancel_button = False
         
-        # PROCESAR BOTÓN DE ENVÍO
+        # PROCESAR BOTÓN DE ENVÍO - CORREGIDO
         if submitted:
             if student_name.strip():
                 student_name_clean = student_name.strip().upper()
@@ -458,7 +519,8 @@ elif page == "👥 Registro de Estudiantes":
                     # Verificar si el nuevo nombre ya existe (excluyendo el actual)
                     existing_names = [s['nombre'].upper() for s in st.session_state.students if s['nombre'] != old_name]
                     if student_name_clean in existing_names:
-                        st.error("❌ Ya existe otro estudiante con ese nombre.")
+                        st.session_state.show_error_message = True
+                        st.session_state.error_message = "❌ Ya existe otro estudiante con ese nombre."
                     else:
                         # Actualizar el estudiante
                         for student in st.session_state.students:
@@ -472,17 +534,19 @@ elif page == "👥 Registro de Estudiantes":
                         update_cleaning_records_after_edit(old_name, student_name_clean)
                         
                         if save_data(st.session_state.students, "students.json") and save_data(st.session_state.cleaning_history, "cleaning_history.json"):
-                            st.success("✅ Estudiante actualizado exitosamente!")
+                            st.session_state.show_success_message = True
+                            st.session_state.success_message = "✅ Estudiante actualizado exitosamente!"
                             st.session_state.edit_mode = False
                             st.session_state.editing_student = None
-                            st.rerun()
                         else:
-                            st.error("❌ Error al guardar los cambios.")
+                            st.session_state.show_error_message = True
+                            st.session_state.error_message = "❌ Error al guardar los cambios."
                 else:
                     # MODO AGREGAR
                     existing_students = [s['nombre'].upper() for s in st.session_state.students]
                     if student_name_clean in existing_students:
-                        st.error("❌ Este estudiante ya está registrado.")
+                        st.session_state.show_error_message = True
+                        st.session_state.error_message = "❌ Este estudiante ya está registrado."
                     else:
                         new_student = {
                             'id': student_id.strip() if student_id else f"ST{len(st.session_state.students) + 1:03d}",
@@ -491,12 +555,16 @@ elif page == "👥 Registro de Estudiantes":
                         }
                         st.session_state.students.append(new_student)
                         if save_data(st.session_state.students, "students.json"):
-                            st.success("✅ Estudiante registrado exitosamente!")
-                            st.rerun()
+                            st.session_state.show_success_message = True
+                            st.session_state.success_message = "✅ Estudiante registrado exitosamente!"
                         else:
-                            st.error("❌ Error al guardar el estudiante.")
+                            st.session_state.show_error_message = True
+                            st.session_state.error_message = "❌ Error al guardar el estudiante."
             else:
-                st.error("❌ Por favor ingresa un nombre válido.")
+                st.session_state.show_error_message = True
+                st.session_state.error_message = "❌ Por favor ingresa un nombre válido."
+            
+            st.rerun()
         
         # PROCESAR BOTÓN DE CANCELAR (SOLO SI EXISTE)
         if st.session_state.edit_mode and cancel_button:
@@ -579,10 +647,12 @@ elif page == "👥 Registro de Estudiantes":
                         st.session_state.show_confirm_delete = False
 
                         if saved_students and saved_history:
-                            st.success("✅ Estudiante eliminado y registros actualizados exitosamente!")
-                            st.rerun()
+                            st.session_state.show_success_message = True
+                            st.session_state.success_message = "✅ Estudiante eliminado y registros actualizados exitosamente!"
                         else:
-                            st.error("❌ Error al guardar los cambios.")
+                            st.session_state.show_error_message = True
+                            st.session_state.error_message = "❌ Error al guardar los cambios."
+                        st.rerun()
                 
                 with col_cancel:
                     if st.button("❌ Cancelar eliminación", key="cancel_delete"):
@@ -603,7 +673,7 @@ elif page == "👥 Registro de Estudiantes":
 elif page == "📝 Registro de Limpieza":
     st.markdown('<h2 class="section-header">📝 Registro de Limpieza Diaria</h2>', unsafe_allow_html=True)
     
-    # FORMULARIO SIMPLIFICADO - SIN COMPLICACIONES
+    # FORMULARIO SIMPLIFICADO - CORREGIDO
     with st.form(f"cleaning_form_{st.session_state.cleaning_form_key}", clear_on_submit=True):
         col1, col2 = st.columns(2)
         
@@ -648,9 +718,11 @@ elif page == "📝 Registro de Limpieza":
             students_selected = [s for s in [student1, student2, student3] if s and s.strip()]
             
             if not students_selected:
-                st.error("❌ Debes seleccionar al menos un estudiante.")
+                st.session_state.show_error_message = True
+                st.session_state.error_message = "❌ Debes seleccionar al menos un estudiante."
             elif not all(student in available_students for student in students_selected):
-                st.error("❌ Uno o más estudiantes no están registrados. Por favor regístralos primero.")
+                st.session_state.show_error_message = True
+                st.session_state.error_message = "❌ Uno o más estudiantes no están registrados. Por favor regístralos primero."
             else:
                 # Crear registro de limpieza
                 new_record = {
@@ -667,12 +739,15 @@ elif page == "📝 Registro de Limpieza":
                 
                 # Guardar datos
                 if save_data(st.session_state.cleaning_history, "cleaning_history.json"):
-                    st.success("✅ Limpieza registrada exitosamente!")
-                    st.balloons()
+                    st.session_state.show_success_message = True
+                    st.session_state.success_message = "✅ Limpieza registrada exitosamente!"
                     st.session_state.cleaning_form_key += 1
-                    st.rerun()
+                    st.balloons()
                 else:
-                    st.error("❌ Error al guardar el registro de limpieza.")
+                    st.session_state.show_error_message = True
+                    st.session_state.error_message = "❌ Error al guardar el registro de limpieza."
+            
+            st.rerun()
 
 # Página de Historial de Limpieza
 elif page == "📊 Historial de Limpieza":
