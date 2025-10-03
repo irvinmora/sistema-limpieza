@@ -43,9 +43,13 @@ except ImportError:
         PDF_AVAILABLE = True
     except:
         PDF_AVAILABLE = False
-
+        
+# Al inicio del código, después de los imports
 # Estilos CSS personalizados
 st.markdown("""
+            
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
 <style>
     .main-header {
         font-size: 3.5rem;
@@ -80,6 +84,88 @@ st.markdown("""
         border: 1px solid #f5c6cb;
         border-radius: 0.5rem;
         color: #721c24;
+        /* Botón de menú móvil MEJORADO */
+    .mobile-menu-btn {
+        position: fixed;
+        top: 15px;
+        left: 15px;
+        z-index: 9999;
+        background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        width: auto;
+        height: 60px;
+        font-size: 1.1rem;
+        font-weight: bold;
+        cursor: pointer;
+        box-shadow: 0 6px 20px rgba(0, 123, 255, 0.6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 25px;
+        min-width: 140px;
+        transition: all 0.3s ease;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        gap: 8px;
+    }
+
+    .mobile-menu-btn:hover {
+        background: linear-gradient(135deg, #0056b3 0%, #004085 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 123, 255, 0.8);
+    }
+
+    .mobile-menu-btn:active {
+        transform: translateY(0);
+        box-shadow: 0 4px 15px rgba(0, 123, 255, 0.6);
+    }
+
+    /* Efecto de pulso para llamar más la atención */
+    @keyframes pulse-glow {
+        0% {
+            box-shadow: 0 6px 20px rgba(0, 123, 255, 0.6);
+        }
+        50% {
+            box-shadow: 0 6px 30px rgba(0, 123, 255, 0.9);
+        }
+        100% {
+            box-shadow: 0 6px 20px rgba(0, 123, 255, 0.6);
+        }
+    }
+
+    .mobile-menu-btn {
+        animation: pulse-glow 2s infinite;
+    }
+
+    /* Icono dentro del botón */
+    .mobile-menu-btn i {
+        font-size: 1.3rem;
+    }
+
+    /* Para móviles específicamente */
+    @media (max-width: 768px) {
+        .mobile-menu-btn {
+            top: 10px;
+            left: 10px;
+            height: 55px;
+            min-width: 130px;
+            font-size: 1rem;
+            padding: 0 20px;
+        }
+        
+        .mobile-menu-btn i {
+            font-size: 1.2rem;
+        }
+    }
+
+    /* Para tablets */
+    @media (min-width: 769px) and (max-width: 1024px) {
+        .mobile-menu-btn {
+            top: 12px;
+            left: 12px;
+        }
     }
 </style>
 """, unsafe_allow_html=True)
