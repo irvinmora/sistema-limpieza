@@ -212,60 +212,6 @@ st.markdown("""
     .sidebar-overlay.mobile-open {
         display: block;
     }
-    /* Botón de menú móvil MEJORADO */
-.mobile-menu-btn {
-    position: fixed;
-    top: 15px;
-    left: 15px;
-    z-index: 9999;
-    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
-    color: white;
-    border: none;
-    border-radius: 12px;
-    width: auto;
-    height: 60px;
-    font-size: 1.2rem;
-    font-weight: bold;
-    cursor: pointer;
-    box-shadow: 0 6px 20px rgba(0, 123, 255, 0.4);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0 20px;
-    min-width: 120px;
-    transition: all 0.3s ease;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-}
-
-.mobile-menu-btn:hover {
-    background: linear-gradient(135deg, #0056b3 0%, #004085 100%);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(0, 123, 255, 0.6);
-}
-
-.mobile-menu-btn:active {
-    transform: translateY(0);
-    box-shadow: 0 4px 15px rgba(0, 123, 255, 0.4);
-}
-
-/* Efecto de pulso para llamar más la atención */
-@keyframes pulse-glow {
-    0% {
-        box-shadow: 0 6px 20px rgba(0, 123, 255, 0.4);
-    }
-    50% {
-        box-shadow: 0 6px 30px rgba(0, 123, 255, 0.8);
-    }
-    100% {
-        box-shadow: 0 6px 20px rgba(0, 123, 255, 0.4);
-    }
-}
-
-.mobile-menu-btn {
-    animation: pulse-glow 2s infinite;
-}
-Cambios realizados:
 </style>
 
 <script>
