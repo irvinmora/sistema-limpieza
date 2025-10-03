@@ -664,7 +664,7 @@ elif page == "👥 Registro de Estudiantes":
                                  if student_to_delete in record.get('estudiantes', []))
 
             if cleaning_count > 0:
-                st.warning(f"⚠️ **Advertencia:** Este estudiante aparece en **{cleping_count}** registros de limpieza.")
+                st.warning(f"⚠️ **Advertencia:** Este estudiante aparece en **{cleaning_count}** registros de limpieza.")
                 st.info("💡 **Nota:** Al confirmar, se eliminará el estudiante de todos esos registros.")
 
             # Si hay una eliminación pendiente para mostrar
@@ -751,7 +751,9 @@ elif page == "📝 Registro de Limpieza":
                 student1 = st.selectbox("Estudiante 1:", [""] + available_students, key="student1")
                 student2 = st.selectbox("Estudiante 2 (opcional):", [""] + available_students, key="student2")
                 student3 = st.selectbox("Estudiante 3 (opcional):", [""] + available_students, key="student3")
-        submitted = st.form_submit_button("Registrar Limpieza")
+        
+        # BOTÓN DE SUBMIT CORREGIDO - usando st.form_submit_button()
+        submitted = st.form_submit_button("📝 Registrar Limpieza")
         
         if submitted:
             students_selected = [s for s in [student1, student2, student3] if s and s.strip()]
