@@ -185,8 +185,6 @@ def initialize_session_state():
         st.session_state.pending_delete = None
         st.session_state.show_confirm_delete = False
         st.session_state.initialized = True
-        st.session_state.form_submitted = False
-        st.session_state.last_action = None
 
 
 def get_current_week_dates():
@@ -367,25 +365,21 @@ with st.sidebar:
     if st.button("🏠 **INICIO**", use_container_width=True, 
                 type="primary" if st.session_state.page == "🏠 Inicio" else "secondary"):
         st.session_state.page = "🏠 Inicio"
-        st.session_state.form_submitted = False
         st.rerun()
         
     if st.button("👥 **REGISTRO DE ESTUDIANTES**", use_container_width=True,
                 type="primary" if st.session_state.page == "👥 Registro de Estudiantes" else "secondary"):
         st.session_state.page = "👥 Registro de Estudiantes"
-        st.session_state.form_submitted = False
         st.rerun()
         
     if st.button("📝 **REGISTRO DE LIMPIEZA**", use_container_width=True,
                 type="primary" if st.session_state.page == "📝 Registro de Limpieza" else "secondary"):
         st.session_state.page = "📝 Registro de Limpieza"
-        st.session_state.form_submitted = False
         st.rerun()
         
     if st.button("📊 **HISTORIAL DE LIMPIEZA**", use_container_width=True,
                 type="primary" if st.session_state.page == "📊 Historial de Limpieza" else "secondary"):
         st.session_state.page = "📊 Historial de Limpieza"
-        st.session_state.form_submitted = False
         st.rerun()
     
     st.markdown("---")
@@ -448,24 +442,6 @@ if page == "🏠 Inicio":
 elif page == "👥 Registro de Estudiantes":
     st.markdown('<h2 class="section-header">👥 Gestión de Estudiantes</h2>', unsafe_allow_html=True)
     
-    # Mostrar mensajes de éxito/error solo si se acaba de enviar el formulario
-    if st.session_state.form_submitted and st.session_state.last_action:
-        if st.session_state.last_action == "success_add":
-            st.success("✅ Estudiante registrado exitosamente!")
-        elif st.session_state.last_action == "success_edit":
-            st.success("✅ Estudiante actualizado exitosamente!")
-        elif st.session_state.last_action == "success_delete":
-            st.success("✅ Estudiante eliminado y registros actualizados exitosamente!")
-        elif st.session_state.last_action == "error_duplicate":
-            st.error("❌ Este estudiante ya está registrado.")
-        elif st.session_state.last_action == "error_duplicate_edit":
-            st.error("❌ Ya existe otro estudiante con ese nombre.")
-        elif st.session_state.last_action == "error_save":
-            st.error("❌ Error al guardar los datos.")
-        # Resetear el estado después de mostrar el mensaje
-        st.session_state.form_submitted = False
-        st.session_state.last_action = None
-    
     # Formulario para agregar/editar estudiantes
     with st.form("student_form", clear_on_submit=True):
         col1, col2 = st.columns(2)
@@ -503,8 +479,6 @@ elif page == "👥 Registro de Estudiantes":
                 if cancel_submitted:
                     st.session_state.edit_mode = False
                     st.session_state.editing_student = None
-                    st.session_state.form_submitted = False
-                    st.session_state.last_action = None
                     st.rerun()
         
         if submitted:
@@ -519,9 +493,7 @@ elif page == "👥 Registro de Estudiantes":
                     # Verificar si el nuevo nombre ya existe (excluyendo el actual)
                     existing_names = [s['nombre'].upper() for s in st.session_state.students if s['nombre'] != old_name]
                     if student_name_clean in existing_names:
-                        st.session_state.form_submitted = True
-                        st.session_state.last_action = "error_duplicate_edit"
-                        st.rerun()
+                        st.error("❌ Ya existe otro estudiante con ese nombre.")
                     else:
                         # Actualizar el estudiante
                         for student in st.session_state.students:
@@ -535,23 +507,19 @@ elif page == "👥 Registro de Estudiantes":
                         update_cleaning_records_after_edit(old_name, student_name_clean)
                         
                         if save_data(st.session_state.students, "students.json") and save_data(st.session_state.cleaning_history, "cleaning_history.json"):
+                            st.success("✅ Estudiante actualizado exitosamente!")
                             st.session_state.edit_mode = False
                             st.session_state.editing_student = None
-                            st.session_state.form_submitted = True
-                            st.session_state.last_action = "success_edit"
                             st.rerun()
                         else:
-                            st.session_state.form_submitted = True
-                            st.session_state.last_action = "error_save"
-                            st.rerun()
+                            st.error("❌ Error al guardar los cambios.")
                 else:
-                    # MODO AGREGAR
+                    # MODO AGREGAR - CORRECCIÓN APLICADA AQUÍ
+                    # Verificar si el estudiante ya existe (comparación case-insensitive)
                     existing_students = [s['nombre'].upper() for s in st.session_state.students]
                     
                     if student_name_clean in existing_students:
-                        st.session_state.form_submitted = True
-                        st.session_state.last_action = "error_duplicate"
-                        st.rerun()
+                        st.error("❌ Este estudiante ya está registrado.")
                     else:
                         new_student = {
                             'id': student_id.strip() if student_id else f"ST{len(st.session_state.students) + 1:03d}",
@@ -560,13 +528,10 @@ elif page == "👥 Registro de Estudiantes":
                         }
                         st.session_state.students.append(new_student)
                         if save_data(st.session_state.students, "students.json"):
-                            st.session_state.form_submitted = True
-                            st.session_state.last_action = "success_add"
+                            st.success("✅ Estudiante registrado exitosamente!")
                             st.rerun()
                         else:
-                            st.session_state.form_submitted = True
-                            st.session_state.last_action = "error_save"
-                            st.rerun()
+                            st.error("❌ Error al guardar el estudiante.")
             else:
                 st.error("❌ Por favor ingresa un nombre válido.")
     
@@ -601,8 +566,6 @@ elif page == "👥 Registro de Estudiantes":
                 if student:
                     st.session_state.editing_student = student
                     st.session_state.edit_mode = True
-                    st.session_state.form_submitted = False
-                    st.session_state.last_action = None
                     st.rerun()
         
         with col2:
@@ -647,28 +610,21 @@ elif page == "👥 Registro de Estudiantes":
                         st.session_state.show_confirm_delete = False
 
                         if saved_students and saved_history:
-                            st.session_state.form_submitted = True
-                            st.session_state.last_action = "success_delete"
+                            st.success("✅ Estudiante eliminado y registros actualizados exitosamente!")
                             st.rerun()
                         else:
-                            st.session_state.form_submitted = True
-                            st.session_state.last_action = "error_save"
-                            st.rerun()
+                            st.error("❌ Error al guardar los cambios.")
                 
                 with col_cancel:
                     if st.button("❌ Cancelar eliminación", key="cancel_delete"):
                         st.session_state.pending_delete = None
                         st.session_state.show_confirm_delete = False
-                        st.session_state.form_submitted = False
-                        st.session_state.last_action = None
                         st.rerun()
             else:
                 # Botón para iniciar el proceso de eliminación
                 if st.button("❌ Eliminar Estudiante", key="delete_button"):
                     st.session_state.pending_delete = student_to_delete
                     st.session_state.show_confirm_delete = True
-                    st.session_state.form_submitted = False
-                    st.session_state.last_action = None
                     st.rerun()
 
     else:
