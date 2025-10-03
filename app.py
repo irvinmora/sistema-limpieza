@@ -44,44 +44,205 @@ except ImportError:
     except:
         PDF_AVAILABLE = False
 
-# Estilos CSS personalizados
+# Estilos CSS personalizados y responsivos
 st.markdown("""
 <style>
+    /* Estilos base responsivos */
     .main-header {
-        font-size: 3.5rem;
+        font-size: 2.5rem;
         color: red;
         text-align: center;
-        margin-bottom: 3rem;
+        margin-bottom: 2rem;
+        padding: 1rem 0;
     }
+    
     .section-header {
         font-size: 1.8rem;
-        color:blue ;
-        border-bottom: 5px solid #2e86ab;
+        color: blue;
+        border-bottom: 3px solid #2e86ab;
         padding-bottom: 0.5rem;
         margin-top: 2rem;
     }
+    
     .success-message {
         padding: 1rem;
         background-color: #fce5cd;
-        border: 10px solid #c3e6cb;
-        border-radius: 1.5rem;
+        border: 2px solid #c3e6cb;
+        border-radius: 1rem;
         color: #155724;
+        margin: 1rem 0;
     }
+    
     .warning-message {
-        padding: 2rem;
+        padding: 1rem;
         background-color: #fff3cd;
-        border: 10px solid #ffeaa7;
+        border: 2px solid #ffeaa7;
         border-radius: 0.5rem;
         color: #856404;
+        margin: 1rem 0;
     }
+    
     .error-message {
         padding: 1rem;
         background-color: #f8d7da;
         border: 1px solid #f5c6cb;
         border-radius: 0.5rem;
         color: #721c24;
+        margin: 1rem 0;
+    }
+    
+    /* Botón de menú móvil */
+    .mobile-menu-btn {
+        position: fixed;
+        top: 10px;
+        left: 10px;
+        z-index: 9999;
+        background: #007bff;
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 60px;
+        height: 60px;
+        font-size: 1.5rem;
+        cursor: pointer;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        display: none;
+    }
+    
+    .mobile-menu-btn:hover {
+        background: #0056b3;
+        transform: scale(1.1);
+    }
+    
+    /* Sidebar responsiva */
+    @media (max-width: 768px) {
+        .mobile-menu-btn {
+            display: block;
+        }
+        
+        .css-1d391kg {
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+        }
+        
+        .css-1d391kg.mobile-open {
+            transform: translateX(0);
+        }
+        
+        .main-header {
+            font-size: 2rem;
+            margin-top: 3rem;
+        }
+        
+        .section-header {
+            font-size: 1.5rem;
+        }
+        
+        /* Ajustes para columnas en móviles */
+        .row-widget.stColumns {
+            flex-direction: column;
+        }
+        
+        .row-widget.stColumns > div {
+            width: 100% !important;
+            margin-bottom: 1rem;
+        }
+        
+        /* Ajustes para métricas */
+        .element-container .stMetric {
+            margin-bottom: 1rem;
+        }
+        
+        /* Ajustes para formularios */
+        .stForm {
+            padding: 1rem;
+        }
+        
+        /* Ajustes para dataframes */
+        .dataframe {
+            font-size: 0.8rem;
+        }
+        
+        /* Ajustes para botones */
+        .stButton button {
+            padding: 0.8rem 1rem;
+            font-size: 0.9rem;
+        }
+    }
+    
+    /* Tablets */
+    @media (min-width: 769px) and (max-width: 1024px) {
+        .main-header {
+            font-size: 2.2rem;
+        }
+        
+        .section-header {
+            font-size: 1.6rem;
+        }
+    }
+    
+    /* Mejoras para inputs en móviles */
+    @media (max-width: 768px) {
+        .stTextInput input, 
+        .stSelectbox select, 
+        .stDateInput input {
+            font-size: 16px !important; /* Previene zoom en iOS */
+            padding: 12px !important;
+        }
+    }
+    
+    /* Mejoras para la sidebar */
+    .css-1d391kg {
+        background: #f8f9fa !important;
+        border-right: 1px solid #e9ecef !important;
+    }
+    
+    /* Overlay para móviles */
+    .sidebar-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.5);
+        z-index: 9998;
+    }
+    
+    .sidebar-overlay.mobile-open {
+        display: block;
     }
 </style>
+
+<script>
+// JavaScript para el menú móvil
+function setupMobileMenu() {
+    const menuBtn = document.querySelector('.mobile-menu-btn');
+    const sidebar = document.querySelector('.css-1d391kg');
+    const overlay = document.querySelector('.sidebar-overlay');
+    
+    if (menuBtn && sidebar) {
+        menuBtn.addEventListener('click', function() {
+            sidebar.classList.toggle('mobile-open');
+            if (overlay) overlay.classList.toggle('mobile-open');
+        });
+        
+        if (overlay) {
+            overlay.addEventListener('click', function() {
+                sidebar.classList.remove('mobile-open');
+                overlay.classList.remove('mobile-open');
+            });
+        }
+    }
+}
+
+// Ejecutar cuando el DOM esté listo
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupMobileMenu);
+} else {
+    setupMobileMenu();
+}
+</script>
 """, unsafe_allow_html=True)
 
 # FUNCIÓN MEJORADA PARA GENERAR PDF
@@ -301,33 +462,52 @@ def update_cleaning_records_after_edit(old_name, new_name):
 
 initialize_session_state()
 
+# Botón de menú móvil
+st.markdown('<button class="mobile-menu-btn">☰</button>', unsafe_allow_html=True)
+st.markdown('<div class="sidebar-overlay"></div>', unsafe_allow_html=True)
+
 # Encabezado principal
 st.markdown('<h1 class="main-header">🧹 Sistema de Registro de Limpieza</h1>', unsafe_allow_html=True)
 
 # Sidebar para navegación
-st.sidebar.title("Navegación")
-page = st.sidebar.radio("Selecciona una sección:", 
-                       ["🏠 Inicio", "👥 Registro de Estudiantes", "📝 Registro de Limpieza", "📊 Historial de Limpieza"])
+with st.sidebar:
+    st.markdown("""
+    <div style='text-align: center; padding: 1rem; background: #007bff; color: white; border-radius: 10px; margin-bottom: 1rem;'>
+        <h3>🧹 MENÚ PRINCIPAL</h3>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    page = st.radio(
+        "**Navegación**", 
+        ["🏠 Inicio", "👥 Estudiantes", "📝 Limpieza", "📊 Reportes"],
+        key="navigation"
+    )
 
 # Página de Inicio
 if page == "🏠 Inicio":
-    st.markdown('<h2 class="section-header">Bienvenido al Sistema de Registro de Limpieza</h2>', unsafe_allow_html=True)
+    st.markdown('<h2 class="section-header">Dashboard Principal</h2>', unsafe_allow_html=True)
     
+    # Métricas en columnas responsivas
     col1, col2, col3 = st.columns(3)
-    col1.metric("Total Estudiantes", len(st.session_state.students))
-    col2.metric("Registros de Limpieza", len(st.session_state.cleaning_history))
     
-    week_records = []
-    try:
-        week_dates = get_current_week_dates()
-        week_records = [r for r in st.session_state.cleaning_history 
-                       if datetime.strptime(r['fecha'], '%Y-%m-%d').date() in week_dates]
-    except:
+    with col1:
+        st.metric("Total Estudiantes", len(st.session_state.students))
+    
+    with col2:
+        st.metric("Registros Totales", len(st.session_state.cleaning_history))
+    
+    with col3:
         week_records = []
-    col3.metric("Limpiezas Esta Semana", len(week_records))
+        try:
+            week_dates = get_current_week_dates()
+            week_records = [r for r in st.session_state.cleaning_history 
+                           if datetime.strptime(r['fecha'], '%Y-%m-%d').date() in week_dates]
+        except:
+            week_records = []
+        st.metric("Limpiezas Esta Semana", len(week_records))
     
     # Resumen de limpiezas de la semana actual
-    st.subheader("📅 Resumen de Limpiezas - Semana Actual")
+    st.markdown('<h2 class="section-header">Resumen Semanal</h2>', unsafe_allow_html=True)
     
     try:
         week_dates = get_current_week_dates()
@@ -352,9 +532,9 @@ if page == "🏠 Inicio":
     except Exception as e:
         st.error(f"Error al cargar el resumen semanal: {e}")
 
-# Página de Registro de Estudiantes
-elif page == "👥 Registro de Estudiantes":
-    st.markdown('<h2 class="section-header">👥 Gestión de Estudiantes</h2>', unsafe_allow_html=True)
+# Página de Estudiantes
+elif page == "👥 Estudiantes":
+    st.markdown('<h2 class="section-header">Gestión de Estudiantes</h2>', unsafe_allow_html=True)
     
     # Formulario para agregar/editar estudiantes
     with st.form("student_form", clear_on_submit=True):
@@ -391,7 +571,7 @@ elif page == "👥 Registro de Estudiantes":
         
         with col2:
             if st.session_state.edit_mode:
-                if st.form_submit_button("❌ Cancelar Edición"):
+                if st.form_submit_button("❌ Cancelar"):
                     st.session_state.edit_mode = False
                     st.session_state.editing_student = None
                     st.rerun()
@@ -447,32 +627,27 @@ elif page == "👥 Registro de Estudiantes":
                 st.error("❌ Por favor ingresa un nombre válido.")
     
     # Lista de estudiantes registrados
-    st.markdown('<h2 class="section-header">📋 Lista de Estudiantes</h2>', unsafe_allow_html=True)
+    st.markdown('<h2 class="section-header">Lista de Estudiantes</h2>', unsafe_allow_html=True)
     
     if st.session_state.students:
         # Mostrar tabla de estudiantes
         students_df = pd.DataFrame(st.session_state.students)
-        
-        # Agregar columna de acciones
-        display_df = students_df[['nombre', 'id']].copy()
-        display_df['Acciones'] = "Editar | Eliminar"
-        
-        st.dataframe(display_df, use_container_width=True)
+        st.dataframe(students_df[['nombre', 'id']], use_container_width=True)
         
         # Gestión de estudiantes (Editar/Eliminar)
-        st.markdown("### 🔧 Gestión de Estudiantes")
+        st.markdown("### Gestión de Estudiantes")
         
         col1, col2 = st.columns(2)
         
         with col1:
-            st.subheader("✏️ Editar Estudiante")
+            st.subheader("Editar Estudiante")
             student_to_edit = st.selectbox(
                 "Selecciona un estudiante para editar:",
                 [s['nombre'] for s in st.session_state.students],
                 key="edit_select"
             )
             
-            if st.button("📝 Editar Estudiante", key="edit_button"):
+            if st.button("✏️ Editar Estudiante", key="edit_button"):
                 student = next((s for s in st.session_state.students if s['nombre'] == student_to_edit), None)
                 if student:
                     st.session_state.editing_student = student
@@ -480,7 +655,7 @@ elif page == "👥 Registro de Estudiantes":
                     st.rerun()
         
         with col2:
-            st.subheader("🗑️ Eliminar Estudiante")
+            st.subheader("Eliminar Estudiante")
             student_to_delete = st.selectbox(
                 "Selecciona un estudiante para eliminar:",
                 [s['nombre'] for s in st.session_state.students],
@@ -493,18 +668,15 @@ elif page == "👥 Registro de Estudiantes":
                 cleaning_count = sum(1 for record in st.session_state.cleaning_history 
                                    if student_to_delete in record['estudiantes'])
                 
-                st.warning(f"⚠️ **Advertencia:** Este estudiante aparece en **{cleaning_count}** registros de limpieza.")
-                
                 if cleaning_count > 0:
-                    st.info("💡 **Nota:** El estudiante será eliminado de todos los registros de limpieza donde aparece.")
+                    st.warning(f"Este estudiante aparece en {cleaning_count} registros de limpieza.")
             
-            if st.button("❌ Eliminar Estudiante", type="secondary", key="delete_button"):
+            if st.button("🗑️ Eliminar Estudiante", type="secondary", key="delete_button"):
                 # Confirmación adicional para eliminación
                 if cleaning_count > 0:
-                    st.error("🚨 **¡ADVERTENCIA!** Esta acción no se puede deshacer.")
-                    confirm = st.checkbox("✅ Confirmo que quiero eliminar este estudiante y quitarlo de todos los registros de limpieza")
+                    confirm = st.checkbox("Confirmar eliminación (se eliminará de todos los registros)")
                     
-                    if confirm and st.button("🔥 CONFIRMAR ELIMINACIÓN", type="primary"):
+                    if confirm and st.button("✅ Confirmar Eliminación"):
                         # Eliminar estudiante
                         st.session_state.students = [s for s in st.session_state.students if s['nombre'] != student_to_delete]
                         
@@ -527,11 +699,11 @@ elif page == "👥 Registro de Estudiantes":
                         st.error("❌ Error al eliminar el estudiante.")
     
     else:
-        st.info("📝 No hay estudiantes registrados aún.")
+        st.info("No hay estudiantes registrados aún.")
 
-# Página de Registro de Limpieza
-elif page == "📝 Registro de Limpieza":
-    st.markdown('<h2 class="section-header">📝 Registro de Limpieza Diaria</h2>', unsafe_allow_html=True)
+# Página de Limpieza
+elif page == "📝 Limpieza":
+    st.markdown('<h2 class="section-header">Registro de Limpieza Diaria</h2>', unsafe_allow_html=True)
     
     with st.form("cleaning_form", clear_on_submit=True):
         col1, col2 = st.columns(2)
@@ -570,9 +742,9 @@ elif page == "📝 Registro de Limpieza":
                     else:
                         st.error("❌ Error al guardar el registro de limpieza.")
 
-# Página de Historial de Limpieza
-elif page == "📊 Historial de Limpieza":
-    st.markdown('<h2 class="section-header">📊 Historial de Limpieza</h2>', unsafe_allow_html=True)
+# Página de Reportes
+elif page == "📊 Reportes":
+    st.markdown('<h2 class="section-header">Historial y Reportes</h2>', unsafe_allow_html=True)
     
     col1, col2, col3 = st.columns(3)
     with col1:
@@ -608,23 +780,18 @@ elif page == "📊 Historial de Limpieza":
         display_df = history_df[['Fecha', 'dia_semana', 'hora', 'estudiantes', 'tipo_limpieza']]
         st.dataframe(display_df, use_container_width=True)
 
-        st.subheader("📈 Estadísticas")
+        st.subheader("Estadísticas")
         col1, col2, col3 = st.columns(3)
         col1.metric("Total Registros", len(filtered_history))
         col2.metric("Limpiezas de Aula", len([r for r in filtered_history if r['tipo_limpieza'] == 'Aula']))
         col3.metric("Limpiezas de Baños", len([r for r in filtered_history if r['tipo_limpieza'] == 'Baños']))
 
-        st.subheader("📄 Generar Reporte PDF")
+        st.subheader("Generar Reporte PDF")
         
         if not PDF_AVAILABLE:
-            st.error("""
-            **reportlab no está instalado. Para generar PDFs, ejecuta:**
-            ```bash
-            pip install reportlab
-            ```
-            """)
+            st.error("reportlab no está instalado. Ejecuta: pip install reportlab")
         else:
-            if st.button("📥 Descargar Reporte Semanal en PDF"):
+            if st.button("📥 Descargar Reporte Semanal"):
                 try:
                     week_dates = get_current_week_dates()
                     week_records = [r for r in st.session_state.cleaning_history 
@@ -651,7 +818,7 @@ elif page == "📊 Historial de Limpieza":
                         else:
                             st.error("❌ No se pudo generar el archivo PDF.")
                     else:
-                        st.warning("⚠️ No hay registros de limpieza para esta semana.")
+                        st.warning("No hay registros de limpieza para esta semana.")
                 except Exception as e:
                     st.error(f"❌ Error al generar el PDF: {str(e)}")
 
