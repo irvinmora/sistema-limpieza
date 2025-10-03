@@ -441,8 +441,11 @@ elif page == "👥 Registro de Estudiantes":
         
         with col2:
             if st.session_state.edit_mode:
-                cancel_submitted = st.form_submit_button("❌ Cancelar Edición")
+                cancel_button = st.form_submit_button("❌ Cancelar Edición")
+            else:
+                cancel_button = False
         
+        # PROCESAR BOTÓN DE ENVÍO
         if submitted:
             if student_name.strip():
                 student_name_clean = student_name.strip().upper()
@@ -495,7 +498,8 @@ elif page == "👥 Registro de Estudiantes":
             else:
                 st.error("❌ Por favor ingresa un nombre válido.")
         
-        if cancel_submitted:
+        # PROCESAR BOTÓN DE CANCELAR (SOLO SI EXISTE)
+        if st.session_state.edit_mode and cancel_button:
             st.session_state.edit_mode = False
             st.session_state.editing_student = None
             st.rerun()
