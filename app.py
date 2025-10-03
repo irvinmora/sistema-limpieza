@@ -84,127 +84,30 @@ st.markdown("""
         color: #721c24;
     }
     
-    /* Botón de menú MEJORADO y FUNCIONAL */
+    /* Botón de menú SIMPLE y FUNCIONAL */
+    .stButton button {
+        width: 100%;
+    }
+    
     .menu-button {
-        position: fixed;
-        top: 20px;
-        left: 20px;
-        z-index: 9999;
         background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
         color: white;
         border: none;
-        border-radius: 50px;
-        padding: 12px 25px;
+        border-radius: 10px;
+        padding: 10px 20px;
         font-size: 16px;
         font-weight: bold;
         cursor: pointer;
-        box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
-        display: flex;
-        align-items: center;
-        gap: 10px;
+        margin: 10px 0;
         transition: all 0.3s ease;
-        font-family: 'Arial', sans-serif;
     }
     
     .menu-button:hover {
         background: linear-gradient(135deg, #FF8E53 0%, #FF6B6B 100%);
         transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(255, 107, 107, 0.6);
-    }
-    
-    .menu-button:active {
-        transform: translateY(0);
-    }
-    
-    .menu-button i {
-        font-size: 18px;
-    }
-    
-    /* Efecto de pulso sutil */
-    @keyframes gentle-pulse {
-        0% { transform: scale(1); }
-        50% { transform: scale(1.05); }
-        100% { transform: scale(1); }
-    }
-    
-    .menu-button {
-        animation: gentle-pulse 3s infinite;
-    }
-    
-    /* Responsive */
-    @media (max-width: 768px) {
-        .menu-button {
-            top: 15px;
-            left: 15px;
-            padding: 10px 20px;
-            font-size: 14px;
-        }
-    }
-    
-    /* Estilo para el sidebar cuando está abierto */
-    .sidebar-content {
-        padding: 20px;
     }
 </style>
 """, unsafe_allow_html=True)
-
-# BOTÓN DE MENÚ MEJORADO - USANDO STREAMLIT NATIVO
-col1, col2, col3 = st.columns([1, 2, 1])
-with col1:
-    if st.button("🍔 **MENÚ**", help="Haz clic para abrir/cerrar el menú de navegación"):
-        # Cambiar el estado del sidebar
-        st.session_state.menu_abierto = not st.session_state.get('menu_abierto', False)
-
-# Inicializar estado del menú
-if 'menu_abierto' not in st.session_state:
-    st.session_state.menu_abierto = False
-
-# Sidebar para navegación - SOLO MOSTRAR SI ESTÁ ABIERTO
-if st.session_state.menu_abierto:
-    with st.sidebar:
-        st.markdown('<div class="sidebar-content">', unsafe_allow_html=True)
-        st.title("🧭 Navegación")
-        st.markdown("---")
-        
-        # Botones de navegación en el sidebar
-        if st.button("🏠 **Inicio**", use_container_width=True):
-            st.session_state.page = "🏠 Inicio"
-            st.session_state.menu_abierto = False
-            st.rerun()
-            
-        if st.button("👥 **Registro de Estudiantes**", use_container_width=True):
-            st.session_state.page = "👥 Registro de Estudiantes"
-            st.session_state.menu_abierto = False
-            st.rerun()
-            
-        if st.button("📝 **Registro de Limpieza**", use_container_width=True):
-            st.session_state.page = "📝 Registro de Limpieza"
-            st.session_state.menu_abierto = False
-            st.rerun()
-            
-        if st.button("📊 **Historial de Limpieza**", use_container_width=True):
-            st.session_state.page = "📊 Historial de Limpieza"
-            st.session_state.menu_abierto = False
-            st.rerun()
-            
-        st.markdown("---")
-        if st.button("❌ **Cerrar Menú**", use_container_width=True):
-            st.session_state.menu_abierto = False
-            st.rerun()
-            
-        st.markdown('</div>', unsafe_allow_html=True)
-else:
-    # Ocultar sidebar cuando el menú está cerrado
-    st.markdown("""
-    <style>
-        section[data-testid="stSidebar"] {
-            display: none;
-        }
-        .stApp {
-            margin-left: 0;
-        }
-    </style>
-    """, unsafe_allow_html=True)
 
 # FUNCIÓN MEJORADA PARA GENERAR PDF
 def generate_pdf_report(records, week_dates):
@@ -392,9 +295,6 @@ def initialize_session_state():
         st.session_state.editing_student = None
     if 'edit_mode' not in st.session_state:
         st.session_state.edit_mode = False
-    # Estado para página actual
-    if 'page' not in st.session_state:
-        st.session_state.page = "🏠 Inicio"
 
 def get_current_week_dates():
     today = date.today()
@@ -426,10 +326,41 @@ def update_cleaning_records_after_edit(old_name, new_name):
 
 initialize_session_state()
 
+# BOTÓN DE MENÚ SIMPLE Y FUNCIONAL EN LA BARRA LATERAL
+with st.sidebar:
+    st.title("🧭 Navegación")
+    st.markdown("---")
+    
+    # Botones de navegación en el sidebar
+    if st.button("🏠 **INICIO**", use_container_width=True, type="primary"):
+        st.session_state.page = "🏠 Inicio"
+        st.rerun()
+        
+    if st.button("👥 **REGISTRO DE ESTUDIANTES**", use_container_width=True):
+        st.session_state.page = "👥 Registro de Estudiantes"
+        st.rerun()
+        
+    if st.button("📝 **REGISTRO DE LIMPIEZA**", use_container_width=True):
+        st.session_state.page = "📝 Registro de Limpieza"
+        st.rerun()
+        
+    if st.button("📊 **HISTORIAL DE LIMPIEZA**", use_container_width=True):
+        st.session_state.page = "📊 Historial de Limpieza"
+        st.rerun()
+
 # Encabezado principal
 st.markdown('<h1 class="main-header">🧹 Sistema de Registro de Limpieza</h1>', unsafe_allow_html=True)
 
+# Mostrar botón para abrir/cerrar menú en móviles (opcional)
+col1, col2, col3 = st.columns([1, 2, 1])
+with col1:
+    st.info("💡 **Menú de Navegación**")
+    st.write("Usa la barra lateral para navegar entre las secciones")
+
 # Navegación basada en estado de sesión
+if 'page' not in st.session_state:
+    st.session_state.page = "🏠 Inicio"
+
 page = st.session_state.page
 
 # Página de Inicio
