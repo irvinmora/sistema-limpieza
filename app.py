@@ -14,7 +14,7 @@ st.set_page_config(
     page_title="Sistema de Registro de Limpieza",
     page_icon="🧹",
     layout="wide",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="expanded"  # Cambiado a expanded para que el menú sea visible
 )
 
 # Intentar importar reportlab silenciosamente
@@ -44,10 +44,8 @@ except ImportError:
     except:
         PDF_AVAILABLE = False
         
-# Al inicio del código, después de los imports
-# Estilos CSS personalizados
+# Estilos CSS personalizados MEJORADOS
 st.markdown("""
-            
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
 <style>
@@ -59,7 +57,7 @@ st.markdown("""
     }
     .section-header {
         font-size: 1.8rem;
-        color:blue ;
+        color: blue;
         border-bottom: 5px solid #2e86ab;
         padding-bottom: 0.5rem;
         margin-top: 2rem;
@@ -84,89 +82,37 @@ st.markdown("""
         border: 1px solid #f5c6cb;
         border-radius: 0.5rem;
         color: #721c24;
-        /* Botón de menú móvil MEJORADO */
-    .mobile-menu-btn {
-        position: fixed;
-        top: 15px;
-        left: 15px;
-        z-index: 9999;
-        background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    }
+    
+    /* Botón personalizado para el menú */
+    .custom-menu-btn {
+        background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
         color: white;
         border: none;
-        border-radius: 12px;
-        width: auto;
-        height: 60px;
-        font-size: 1.1rem;
+        border-radius: 10px;
+        padding: 12px 20px;
+        font-size: 16px;
         font-weight: bold;
         cursor: pointer;
-        box-shadow: 0 6px 20px rgba(0, 123, 255, 0.6);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 0 25px;
-        min-width: 140px;
+        margin: 5px 0;
         transition: all 0.3s ease;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        gap: 8px;
+        width: 100%;
+        text-align: center;
     }
-
-    .mobile-menu-btn:hover {
-        background: linear-gradient(135deg, #0056b3 0%, #004085 100%);
+    
+    .custom-menu-btn:hover {
+        background: linear-gradient(135deg, #FF8E53 0%, #FF6B6B 100%);
         transform: translateY(-2px);
-        box-shadow: 0 8px 25px rgba(0, 123, 255, 0.8);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
     }
-
-    .mobile-menu-btn:active {
-        transform: translateY(0);
-        box-shadow: 0 4px 15px rgba(0, 123, 255, 0.6);
+    
+    /* Estilo para el sidebar */
+    .sidebar-content {
+        padding: 10px;
     }
-
-    /* Efecto de pulso para llamar más la atención */
-    @keyframes pulse-glow {
-        0% {
-            box-shadow: 0 6px 20px rgba(0, 123, 255, 0.6);
-        }
-        50% {
-            box-shadow: 0 6px 30px rgba(0, 123, 255, 0.9);
-        }
-        100% {
-            box-shadow: 0 6px 20px rgba(0, 123, 255, 0.6);
-        }
-    }
-
-    .mobile-menu-btn {
-        animation: pulse-glow 2s infinite;
-    }
-
-    /* Icono dentro del botón */
-    .mobile-menu-btn i {
-        font-size: 1.3rem;
-    }
-
-    /* Para móviles específicamente */
-    @media (max-width: 768px) {
-        .mobile-menu-btn {
-            top: 10px;
-            left: 10px;
-            height: 55px;
-            min-width: 130px;
-            font-size: 1rem;
-            padding: 0 20px;
-        }
-        
-        .mobile-menu-btn i {
-            font-size: 1.2rem;
-        }
-    }
-
-    /* Para tablets */
-    @media (min-width: 769px) and (max-width: 1024px) {
-        .mobile-menu-btn {
-            top: 12px;
-            left: 12px;
-        }
-    }
+    
+    /* Ocultar el botón nativo de Streamlit */
+    .css-1d391kg {display: none;}
 </style>
 """, unsafe_allow_html=True)
 
@@ -325,44 +271,80 @@ def generate_pdf_report(records, week_dates):
         st.error(f"Error detallado al generar PDF: {str(e)}")
         return None
 
-# FUNCIONES PARA MANEJO DE DATOS
+# FUNCIONES MEJORADAS PARA MANEJO DE DATOS
 def load_data(filename):
     try:
+        # Crear directorio data si no existe
+        os.makedirs("data", exist_ok=True)
+        
         filepath = f"data/{filename}"
         if not os.path.exists(filepath) or os.path.getsize(filepath) == 0:
+            # Si el archivo no existe o está vacío, crear uno con array vacío
+            with open(filepath, "w", encoding="utf-8") as f:
+                json.dump([], f, ensure_ascii=False, indent=2)
             return []
+        
         with open(filepath, "r", encoding="utf-8") as f:
             content = f.read().strip()
-            return json.loads(content) if content else []
-    except:
+            if not content:
+                return []
+            data = json.loads(content)
+            # Verificar que sea una lista
+            if isinstance(data, list):
+                return data
+            else:
+                # Si no es lista, crear archivo nuevo
+                with open(filepath, "w", encoding="utf-8") as f:
+                    json.dump([], f, ensure_ascii=False, indent=2)
+                return []
+    except json.JSONDecodeError:
+        # Si hay error en el JSON, crear archivo nuevo
+        st.error(f"Error en el archivo {filename}. Se creará uno nuevo.")
+        with open(f"data/{filename}", "w", encoding="utf-8") as f:
+            json.dump([], f, ensure_ascii=False, indent=2)
+        return []
+    except Exception as e:
+        st.error(f"Error al cargar {filename}: {e}")
         return []
 
 def save_data(data, filename):
     try:
+        # Crear directorio data si no existe
         os.makedirs("data", exist_ok=True)
-        with open(f"data/{filename}", "w", encoding="utf-8") as f:
+        
+        filepath = f"data/{filename}"
+        with open(filepath, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
         return True
-    except:
+    except Exception as e:
+        st.error(f"Error al guardar {filename}: {e}")
         return False
 
 def initialize_session_state():
+    # Cargar datos al inicio
     if 'students' not in st.session_state:
         st.session_state.students = load_data("students.json")
+    
     if 'cleaning_history' not in st.session_state:
         st.session_state.cleaning_history = load_data("cleaning_history.json")
+    
     # Estado para edición
     if 'editing_student' not in st.session_state:
         st.session_state.editing_student = None
+    
     if 'edit_mode' not in st.session_state:
         st.session_state.edit_mode = False
+    
+    # Estado para página actual
+    if 'page' not in st.session_state:
+        st.session_state.page = "🏠 Inicio"
 
 def get_current_week_dates():
     today = date.today()
     start_of_week = today - pd.Timedelta(days=today.weekday())
     return [start_of_week + pd.Timedelta(days=i) for i in range(5)]
 
-# FUNCIÓN PARA ACTUALIZAR REGISTROS DE LIMPIEZA CUANDO SE ELIMINA UN ESTUDIANTE
+# FUNCIÓN MEJORADA PARA ACTUALIZAR REGISTROS DE LIMPIEZA CUANDO SE ELIMINA UN ESTUDIANTE
 def update_cleaning_records_after_deletion(student_name):
     """Elimina al estudiante de todos los registros de limpieza donde aparece"""
     updated_records = []
@@ -385,15 +367,49 @@ def update_cleaning_records_after_edit(old_name, new_name):
             # Reemplazar el nombre antiguo por el nuevo
             record['estudiantes'] = [new_name if s == old_name else s for s in record['estudiantes']]
 
+# Inicializar estado de la sesión
 initialize_session_state()
+
+# MENÚ DE NAVEGACIÓN EN SIDEBAR - SIEMPRE VISIBLE
+with st.sidebar:
+    st.markdown('<div class="sidebar-content">', unsafe_allow_html=True)
+    
+    st.markdown("## 🧭 Menú de Navegación")
+    st.markdown("---")
+    
+    # Botones de navegación personalizados
+    if st.button("🏠 **INICIO**", use_container_width=True, 
+                type="primary" if st.session_state.page == "🏠 Inicio" else "secondary"):
+        st.session_state.page = "🏠 Inicio"
+        st.rerun()
+        
+    if st.button("👥 **REGISTRO DE ESTUDIANTES**", use_container_width=True,
+                type="primary" if st.session_state.page == "👥 Registro de Estudiantes" else "secondary"):
+        st.session_state.page = "👥 Registro de Estudiantes"
+        st.rerun()
+        
+    if st.button("📝 **REGISTRO DE LIMPIEZA**", use_container_width=True,
+                type="primary" if st.session_state.page == "📝 Registro de Limpieza" else "secondary"):
+        st.session_state.page = "📝 Registro de Limpieza"
+        st.rerun()
+        
+    if st.button("📊 **HISTORIAL DE LIMPIEZA**", use_container_width=True,
+                type="primary" if st.session_state.page == "📊 Historial de Limpieza" else "secondary"):
+        st.session_state.page = "📊 Historial de Limpieza"
+        st.rerun()
+    
+    st.markdown("---")
+    st.markdown("### 📊 Estadísticas Rápidas")
+    st.metric("Estudiantes", len(st.session_state.students))
+    st.metric("Registros", len(st.session_state.cleaning_history))
+    
+    st.markdown('</div>', unsafe_allow_html=True)
 
 # Encabezado principal
 st.markdown('<h1 class="main-header">🧹 Sistema de Registro de Limpieza</h1>', unsafe_allow_html=True)
 
-# Sidebar para navegación
-st.sidebar.title("Navegación")
-page = st.sidebar.radio("Selecciona una sección:", 
-                       ["🏠 Inicio", "👥 Registro de Estudiantes", "📝 Registro de Limpieza", "📊 Historial de Limpieza"])
+# Navegación basada en estado de sesión
+page = st.session_state.page
 
 # Página de Inicio
 if page == "🏠 Inicio":
@@ -511,6 +527,7 @@ elif page == "👥 Registro de Estudiantes":
                             st.success("✅ Estudiante actualizado exitosamente!")
                             st.session_state.edit_mode = False
                             st.session_state.editing_student = None
+                            st.rerun()
                         else:
                             st.error("❌ Error al guardar los cambios.")
                 else:
@@ -527,6 +544,7 @@ elif page == "👥 Registro de Estudiantes":
                         st.session_state.students.append(new_student)
                         if save_data(st.session_state.students, "students.json"):
                             st.success("✅ Estudiante registrado exitosamente!")
+                            st.rerun()
                         else:
                             st.error("❌ Error al guardar el estudiante.")
             else:
@@ -579,18 +597,17 @@ elif page == "👥 Registro de Estudiantes":
                 cleaning_count = sum(1 for record in st.session_state.cleaning_history 
                                    if student_to_delete in record['estudiantes'])
                 
-                st.warning(f"⚠️ **Advertencia:** Este estudiante aparece en **{cleaning_count}** registros de limpieza.")
-                
                 if cleaning_count > 0:
+                    st.warning(f"⚠️ **Advertencia:** Este estudiante aparece en **{cleaning_count}** registros de limpieza.")
                     st.info("💡 **Nota:** El estudiante será eliminado de todos los registros de limpieza donde aparece.")
             
             if st.button("❌ Eliminar Estudiante", type="secondary", key="delete_button"):
                 # Confirmación adicional para eliminación
                 if cleaning_count > 0:
-                    st.error("🚨 **¡ADVERTENCIA!** Esta acción no se puede deshacer.")
+                    st.error("🚨 **¡ADVERTENCIA!** Esta acción eliminará al estudiante de todos los registros de limpieza.")
                     confirm = st.checkbox("✅ Confirmo que quiero eliminar este estudiante y quitarlo de todos los registros de limpieza")
                     
-                    if confirm and st.button("🔥 CONFIRMAR ELIMINACIÓN", type="primary"):
+                    if confirm:
                         # Eliminar estudiante
                         st.session_state.students = [s for s in st.session_state.students if s['nombre'] != student_to_delete]
                         
@@ -626,10 +643,13 @@ elif page == "📝 Registro de Limpieza":
             cleaning_type = st.selectbox("Tipo de limpieza:", ["Aula", "Baños"], key="cleaning_type")
         with col2:
             available_students = [s['nombre'] for s in st.session_state.students]
-            st.write("Selecciona los estudiantes (1-3):")
-            student1 = st.selectbox("Estudiante 1:", [""] + available_students, key="student1")
-            student2 = st.selectbox("Estudiante 2 (opcional):", [""] + available_students, key="student2")
-            student3 = st.selectbox("Estudiante 3 (opcional):", [""] + available_students, key="student3")
+            if not available_students:
+                st.error("❌ No hay estudiantes registrados. Por favor registra estudiantes primero.")
+            else:
+                st.write("Selecciona los estudiantes (1-3):")
+                student1 = st.selectbox("Estudiante 1:", [""] + available_students, key="student1")
+                student2 = st.selectbox("Estudiante 2 (opcional):", [""] + available_students, key="student2")
+                student3 = st.selectbox("Estudiante 3 (opcional):", [""] + available_students, key="student3")
         submitted = st.form_submit_button("Registrar Limpieza")
         
         if submitted:
@@ -653,6 +673,7 @@ elif page == "📝 Registro de Limpieza":
                     if save_data(st.session_state.cleaning_history, "cleaning_history.json"):
                         st.success("✅ Limpieza registrada exitosamente!")
                         st.balloons()
+                        st.rerun()
                     else:
                         st.error("❌ Error al guardar el registro de limpieza.")
 
