@@ -532,7 +532,7 @@ if page == "🏠 Inicio":
     except Exception as e:
         st.error(f"Error al cargar el resumen semanal: {e}")
 
-# Página de Estudiantes
+# Página de Estudiantes - CORREGIDA
 elif page == "👥 Estudiantes":
     st.markdown('<h2 class="section-header">Gestión de Estudiantes</h2>', unsafe_allow_html=True)
     
@@ -634,7 +634,7 @@ elif page == "👥 Estudiantes":
         students_df = pd.DataFrame(st.session_state.students)
         st.dataframe(students_df[['nombre', 'id']], use_container_width=True)
         
-        # Gestión de estudiantes (Editar/Eliminar)
+        # Gestión de estudiantes (Editar/Eliminar) - CORREGIDO
         st.markdown("### Gestión de Estudiantes")
         
         col1, col2 = st.columns(2)
@@ -662,41 +662,66 @@ elif page == "👥 Estudiantes":
                 key="delete_select"
             )
             
-            # Mostrar información de confirmación
+            # Contar en cuántos registros de limpieza aparece
+            cleaning_count = 0
             if student_to_delete:
-                # Contar en cuántos registros de limpieza aparece
                 cleaning_count = sum(1 for record in st.session_state.cleaning_history 
                                    if student_to_delete in record['estudiantes'])
                 
                 if cleaning_count > 0:
-                    st.warning(f"Este estudiante aparece en {cleaning_count} registros de limpieza.")
+                    st.warning(f"⚠️ Este estudiante aparece en {cleaning_count} registro(s) de limpieza.")
+                    st.info("💡 Al eliminar, se removerá de todos los registros de limpieza automáticamente.")
             
-            if st.button("🗑️ Eliminar Estudiante", type="secondary", key="delete_button"):
-                # Confirmación adicional para eliminación
-                if cleaning_count > 0:
-                    confirm = st.checkbox("Confirmar eliminación (se eliminará de todos los registros)")
-                    
-                    if confirm and st.button("✅ Confirmar Eliminación"):
-                        # Eliminar estudiante
-                        st.session_state.students = [s for s in st.session_state.students if s['nombre'] != student_to_delete]
+            # Usar un key único para el botón de eliminar
+            if st.button("🗑️ Eliminar Estudiante", type="secondary", key="delete_button_main"):
+                if student_to_delete:
+                    # Si tiene registros, mostrar confirmación inmediata
+                    if cleaning_count > 0:
+                        st.warning(f"¿Estás seguro de que quieres eliminar a **{student_to_delete}**?")
+                        st.warning(f"Se eliminará de {cleaning_count} registro(s) de limpieza.")
                         
-                        # Actualizar registros de limpieza
-                        st.session_state.cleaning_history = update_cleaning_records_after_deletion(student_to_delete)
+                        col_confirm1, col_confirm2 = st.columns(2)
+                        with col_confirm1:
+                            if st.button("✅ Sí, eliminar estudiante", key="confirm_delete_yes"):
+                                # Eliminar estudiante de la lista
+                                st.session_state.students = [s for s in st.session_state.students 
+                                                           if s['nombre'] != student_to_delete]
+                                
+                                # Actualizar registros de limpieza
+                                st.session_state.cleaning_history = update_cleaning_records_after_deletion(student_to_delete)
+                                
+                                if save_data(st.session_state.students, "students.json") and save_data(st.session_state.cleaning_history, "cleaning_history.json"):
+                                    st.success(f"✅ Estudiante '{student_to_delete}' eliminado exitosamente!")
+                                    st.success(f"Se removió de {cleaning_count} registro(s) de limpieza.")
+                                    st.rerun()
+                                else:
+                                    st.error("❌ Error al eliminar el estudiante.")
                         
-                        if save_data(st.session_state.students, "students.json") and save_data(st.session_state.cleaning_history, "cleaning_history.json"):
-                            st.success("✅ Estudiante eliminado exitosamente!")
-                            st.rerun()
-                        else:
-                            st.error("❌ Error al eliminar el estudiante.")
-                else:
-                    # Si no aparece en registros, eliminar directamente
-                    st.session_state.students = [s for s in st.session_state.students if s['nombre'] != student_to_delete]
+                        with col_confirm2:
+                            if st.button("❌ Cancelar eliminación", key="confirm_delete_no"):
+                                st.info("Eliminación cancelada.")
+                                st.rerun()
                     
-                    if save_data(st.session_state.students, "students.json"):
-                        st.success("✅ Estudiante eliminado exitosamente!")
-                        st.rerun()
                     else:
-                        st.error("❌ Error al eliminar el estudiante.")
+                        # Si no tiene registros, eliminar directamente con confirmación simple
+                        st.warning(f"¿Estás seguro de que quieres eliminar a **{student_to_delete}**?")
+                        
+                        col_confirm1, col_confirm2 = st.columns(2)
+                        with col_confirm1:
+                            if st.button("✅ Sí, eliminar", key="confirm_delete_simple_yes"):
+                                st.session_state.students = [s for s in st.session_state.students 
+                                                           if s['nombre'] != student_to_delete]
+                                
+                                if save_data(st.session_state.students, "students.json"):
+                                    st.success(f"✅ Estudiante '{student_to_delete}' eliminado exitosamente!")
+                                    st.rerun()
+                                else:
+                                    st.error("❌ Error al eliminar el estudiante.")
+                        
+                        with col_confirm2:
+                            if st.button("❌ Cancelar", key="confirm_delete_simple_no"):
+                                st.info("Eliminación cancelada.")
+                                st.rerun()
     
     else:
         st.info("No hay estudiantes registrados aún.")
