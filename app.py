@@ -47,7 +47,6 @@ except ImportError:
 # Al inicio del código, después de los imports
 # Estilos CSS personalizados
 st.markdown("""
-            
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
 <style>
@@ -84,7 +83,8 @@ st.markdown("""
         border: 1px solid #f5c6cb;
         border-radius: 0.5rem;
         color: #721c24;
-        /* Botón de menú móvil MEJORADO */
+    }
+    /* Botón de menú móvil MEJORADO */
     .mobile-menu-btn {
         position: fixed;
         top: 15px;
@@ -168,6 +168,23 @@ st.markdown("""
         }
     }
 </style>
+""", unsafe_allow_html=True)
+
+# AGREGAR BOTÓN DE MENÚ MÓVIL - CORRECCIÓN APLICADA
+st.markdown("""
+<button class="mobile-menu-btn" onclick="toggleSidebar()">
+    <i class="fas fa-bars"></i> MENÚ
+</button>
+
+<script>
+function toggleSidebar() {
+    const sidebar = window.parent.document.querySelector('[data-testid="stSidebar"]');
+    if (sidebar) {
+        const isVisible = sidebar.style.transform !== 'translateX(-100%)';
+        sidebar.style.transform = isVisible ? 'translateX(-100%)' : 'translateX(0px)';
+    }
+}
+</script>
 """, unsafe_allow_html=True)
 
 # FUNCIÓN MEJORADA PARA GENERAR PDF
