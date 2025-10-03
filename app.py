@@ -44,242 +44,42 @@ except ImportError:
     except:
         PDF_AVAILABLE = False
 
-# Estilos CSS personalizados con fondo profesional
+# Estilos CSS personalizados
 st.markdown("""
 <style>
-    /* Fondo profesional con gradiente suave */
-    .stApp {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    }
-    
-    /* Contenedor principal con efecto glassmorphism */
-    .main-container {
-        background: rgba(255, 255, 255, 0.95);
-        backdrop-filter: blur(20px);
-        border-radius: 20px;
-        padding: 2rem;
-        margin: 1rem;
-        box-shadow: 0 8px 32px rgba(0,0,0,0.1);
-        border: 1px solid rgba(255,255,255,0.2);
-    }
-    
-    /* Sidebar profesional */
-    .css-1d391kg {
-        background: rgba(255, 255, 255, 0.9) !important;
-        backdrop-filter: blur(15px) !important;
-    }
-    
     .main-header {
-        font-size: 2.8rem;
-        font-weight: 700;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
+        font-size: 2.5rem;
+        color: red;
         text-align: center;
         margin-bottom: 2rem;
-        padding: 1rem;
-        text-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
-    
     .section-header {
         font-size: 1.8rem;
-        color: #2c3e50;
-        border-bottom: 3px solid #3498db;
-        padding-bottom: 0.7rem;
-        margin: 2rem 0 1.5rem 0;
-        font-weight: 600;
+        color:blue ;
+        border-bottom: 2px solid #2e86ab;
+        padding-bottom: 0.5rem;
+        margin-top: 2rem;
     }
-    
-    /* Tarjetas de métricas modernas */
-    .metric-card {
-        background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-        padding: 1.5rem;
-        border-radius: 15px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-        border-left: 5px solid #3498db;
-        text-align: center;
-        margin: 0.5rem;
-        transition: transform 0.3s ease;
-    }
-    
-    .metric-card:hover {
-        transform: translateY(-5px);
-    }
-    
-    .metric-card h3 {
-        color: #7f8c8d;
-        font-size: 0.9rem;
-        margin-bottom: 0.5rem;
-        font-weight: 600;
-    }
-    
-    .metric-card h2 {
-        color: #2c3e50;
-        font-size: 2.2rem;
-        margin: 0;
-        font-weight: 700;
-    }
-    
-    /* Botones modernos */
-    .stButton button {
-        background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
-        color: white;
-        border: none;
-        padding: 0.75rem 2rem;
-        border-radius: 50px;
-        font-weight: 600;
-        transition: all 0.3s ease;
-        width: 100%;
-        box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
-    }
-    
-    .stButton button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 25px rgba(52, 152, 219, 0.4);
-        background: linear-gradient(135deg, #2980b9 0%, #3498db 100%);
-    }
-    
-    /* Botones secundarios */
-    .stButton button[kind="secondary"] {
-        background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);
-        box-shadow: 0 4px 15px rgba(149, 165, 166, 0.3);
-    }
-    
-    .stButton button[kind="secondary"]:hover {
-        background: linear-gradient(135deg, #7f8c8d 0%, #95a5a6 100%);
-        box-shadow: 0 8px 25px rgba(149, 165, 166, 0.4);
-    }
-    
-    /* Botones de éxito */
-    .stButton button:contains("Agregar"), 
-    .stButton button:contains("Guardar"), 
-    .stButton button:contains("Registrar") {
-        background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
-        box-shadow: 0 4px 15px rgba(39, 174, 96, 0.3);
-    }
-    
-    /* Formularios */
-    .stForm {
-        background: rgba(255, 255, 255, 0.8);
-        padding: 2rem;
-        border-radius: 15px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-        backdrop-filter: blur(10px);
-    }
-    
-    /* Mensajes de estado mejorados */
     .success-message {
-        background: linear-gradient(135deg, #d4edda, #c3e6cb);
-        border: none;
-        border-radius: 10px;
+        padding: 1rem;
+        background-color: #fce5cd;
+        border: 1px solid #c3e6cb;
+        border-radius: 0.5rem;
         color: #155724;
-        padding: 1rem;
-        margin: 1rem 0;
-        box-shadow: 0 2px 10px rgba(39, 174, 96, 0.2);
     }
-    
     .warning-message {
-        background: linear-gradient(135deg, #fff3cd, #ffeaa7);
-        border: none;
-        border-radius: 10px;
+        padding: 1rem;
+        background-color: #fff3cd;
+        border: 1px solid #ffeaa7;
+        border-radius: 0.5rem;
         color: #856404;
-        padding: 1rem;
-        margin: 1rem 0;
-        box-shadow: 0 2px 10px rgba(255, 193, 7, 0.2);
     }
-    
     .error-message {
-        background: linear-gradient(135deg, #f8d7da, #f5c6cb);
-        border: none;
-        border-radius: 10px;
+        padding: 1rem;
+        background-color: #f8d7da;
+        border: 1px solid #f5c6cb;
+        border-radius: 0.5rem;
         color: #721c24;
-        padding: 1rem;
-        margin: 1rem 0;
-        box-shadow: 0 2px 10px rgba(220, 53, 69, 0.2);
-    }
-    
-    /* Dataframes estilizados */
-    .dataframe {
-        border-radius: 10px;
-        overflow: hidden;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-        background: white;
-    }
-    
-    /* Inputs y selects mejorados */
-    .stTextInput input, .stSelectbox select, .stDateInput input {
-        border-radius: 10px !important;
-        border: 2px solid #e2e8f0 !important;
-        padding: 0.75rem 1rem !important;
-        background: rgba(255, 255, 255, 0.9) !important;
-    }
-    
-    .stTextInput input:focus, .stSelectbox select:focus, .stDateInput input:focus {
-        border-color: #3498db !important;
-        box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1) !important;
-    }
-    
-    /* Sidebar mejorado */
-    .css-1d391kg {
-        background: rgba(255, 255, 255, 0.95) !important;
-        backdrop-filter: blur(15px) !important;
-        border-right: 1px solid rgba(255,255,255,0.2) !important;
-    }
-    
-    /* Radio buttons mejorados */
-    .stRadio > div {
-        background: rgba(255, 255, 255, 0.8);
-        padding: 1rem;
-        border-radius: 10px;
-        backdrop-filter: blur(10px);
-    }
-    
-    /* Checkbox mejorado */
-    .stCheckbox > label {
-        background: rgba(255, 255, 255, 0.8);
-        padding: 0.5rem 1rem;
-        border-radius: 8px;
-        backdrop-filter: blur(10px);
-    }
-    
-    /* Expander mejorado */
-    .streamlit-expanderHeader {
-        background: linear-gradient(135deg, #3498db 0%, #2980b9 100%) !important;
-        color: white !important;
-        border-radius: 8px !important;
-        font-weight: 600 !important;
-    }
-    
-    /* Footer profesional */
-    .footer {
-        text-align: center;
-        color: white;
-        padding: 2rem;
-        margin-top: 3rem;
-        font-size: 0.9em;
-    }
-    
-    /* Responsive design */
-    @media (max-width: 768px) {
-        .main-header {
-            font-size: 2rem;
-            padding: 0.5rem;
-        }
-        
-        .section-header {
-            font-size: 1.5rem;
-        }
-        
-        .metric-card {
-            padding: 1rem;
-            margin: 0.25rem;
-        }
-        
-        .main-container {
-            padding: 1rem;
-            margin: 0.5rem;
-        }
     }
 </style>
 """, unsafe_allow_html=True)
