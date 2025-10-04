@@ -91,42 +91,10 @@ st.markdown("""
         margin: 1rem 0;
     }
     
-    /* Botón de menú móvil */
-    .mobile-menu-btn {
-        position: fixed;
-        top: 10px;
-        left: 10px;
-        z-index: 9999;
-        background: #007bff;
-        color: white;
-        border: none;
-        border-radius: 50%;
-        width: 60px;
-        height: 60px;
-        font-size: 1.5rem;
-        cursor: pointer;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-        display: none;
-    }
-    
-    .mobile-menu-btn:hover {
-        background: #0056b3;
-        transform: scale(1.1);
-    }
-    
     /* Sidebar responsiva */
     @media (max-width: 768px) {
-        .mobile-menu-btn {
-            display: block;
-        }
-        
         .css-1d391kg {
-            transform: translateX(-100%);
             transition: transform 0.3s ease;
-        }
-        
-        .css-1d391kg.mobile-open {
-            transform: translateX(0);
         }
         
         .main-header {
@@ -196,53 +164,7 @@ st.markdown("""
         background: #f8f9fa !important;
         border-right: 1px solid #e9ecef !important;
     }
-    
-    /* Overlay para móviles */
-    .sidebar-overlay {
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0,0,0,0.5);
-        z-index: 9998;
-    }
-    
-    .sidebar-overlay.mobile-open {
-        display: block;
-    }
 </style>
-
-<script>
-// JavaScript para el menú móvil
-function setupMobileMenu() {
-    const menuBtn = document.querySelector('.mobile-menu-btn');
-    const sidebar = document.querySelector('.css-1d391kg');
-    const overlay = document.querySelector('.sidebar-overlay');
-    
-    if (menuBtn && sidebar) {
-        menuBtn.addEventListener('click', function() {
-            sidebar.classList.toggle('mobile-open');
-            if (overlay) overlay.classList.toggle('mobile-open');
-        });
-        
-        if (overlay) {
-            overlay.addEventListener('click', function() {
-                sidebar.classList.remove('mobile-open');
-                overlay.classList.remove('mobile-open');
-            });
-        }
-    }
-}
-
-// Ejecutar cuando el DOM esté listo
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', setupMobileMenu);
-} else {
-    setupMobileMenu();
-}
-</script>
 """, unsafe_allow_html=True)
 
 # FUNCIÓN MEJORADA PARA GENERAR PDF
@@ -431,6 +353,9 @@ def initialize_session_state():
         st.session_state.editing_student = None
     if 'edit_mode' not in st.session_state:
         st.session_state.edit_mode = False
+    # Estado para confirmación de eliminación
+    if 'confirm_delete' not in st.session_state:
+        st.session_state.confirm_delete = None
 
 def get_current_week_dates():
     today = date.today()
@@ -461,10 +386,6 @@ def update_cleaning_records_after_edit(old_name, new_name):
             record['estudiantes'] = [new_name if s == old_name else s for s in record['estudiantes']]
 
 initialize_session_state()
-
-# Botón de menú móvil
-st.markdown('<button class="mobile-menu-btn">☰</button>', unsafe_allow_html=True)
-st.markdown('<div class="sidebar-overlay"></div>', unsafe_allow_html=True)
 
 # Encabezado principal
 st.markdown('<h1 class="main-header">🧹 Sistema de Registro de Limpieza</h1>', unsafe_allow_html=True)
@@ -672,56 +593,44 @@ elif page == "👥 Estudiantes":
                     st.warning(f"⚠️ Este estudiante aparece en {cleaning_count} registro(s) de limpieza.")
                     st.info("💡 Al eliminar, se removerá de todos los registros de limpieza automáticamente.")
             
-            # Usar un key único para el botón de eliminar
-            if st.button("🗑️ Eliminar Estudiante", type="secondary", key="delete_button_main"):
-                if student_to_delete:
-                    # Si tiene registros, mostrar confirmación inmediata
-                    if cleaning_count > 0:
-                        st.warning(f"¿Estás seguro de que quieres eliminar a **{student_to_delete}**?")
-                        st.warning(f"Se eliminará de {cleaning_count} registro(s) de limpieza.")
+            # Sistema de confirmación mejorado
+            if st.session_state.confirm_delete == student_to_delete:
+                # Mostrar confirmación
+                st.error(f"⚠️ ¿Estás seguro de eliminar a **{student_to_delete}**?")
+                if cleaning_count > 0:
+                    st.warning(f"Se eliminará de {cleaning_count} registro(s) de limpieza.")
+                
+                col_a, col_b = st.columns(2)
+                with col_a:
+                    if st.button("✅ Sí, eliminar", key="confirm_yes", type="primary"):
+                        # Eliminar estudiante de la lista
+                        st.session_state.students = [s for s in st.session_state.students 
+                                                   if s['nombre'] != student_to_delete]
                         
-                        col_confirm1, col_confirm2 = st.columns(2)
-                        with col_confirm1:
-                            if st.button("✅ Sí, eliminar estudiante", key="confirm_delete_yes"):
-                                # Eliminar estudiante de la lista
-                                st.session_state.students = [s for s in st.session_state.students 
-                                                           if s['nombre'] != student_to_delete]
-                                
-                                # Actualizar registros de limpieza
-                                st.session_state.cleaning_history = update_cleaning_records_after_deletion(student_to_delete)
-                                
-                                if save_data(st.session_state.students, "students.json") and save_data(st.session_state.cleaning_history, "cleaning_history.json"):
-                                    st.success(f"✅ Estudiante '{student_to_delete}' eliminado exitosamente!")
-                                    st.success(f"Se removió de {cleaning_count} registro(s) de limpieza.")
-                                    st.rerun()
-                                else:
-                                    st.error("❌ Error al eliminar el estudiante.")
+                        # Actualizar registros de limpieza
+                        st.session_state.cleaning_history = update_cleaning_records_after_deletion(student_to_delete)
                         
-                        with col_confirm2:
-                            if st.button("❌ Cancelar eliminación", key="confirm_delete_no"):
-                                st.info("Eliminación cancelada.")
-                                st.rerun()
-                    
-                    else:
-                        # Si no tiene registros, eliminar directamente con confirmación simple
-                        st.warning(f"¿Estás seguro de que quieres eliminar a **{student_to_delete}**?")
-                        
-                        col_confirm1, col_confirm2 = st.columns(2)
-                        with col_confirm1:
-                            if st.button("✅ Sí, eliminar", key="confirm_delete_simple_yes"):
-                                st.session_state.students = [s for s in st.session_state.students 
-                                                           if s['nombre'] != student_to_delete]
-                                
-                                if save_data(st.session_state.students, "students.json"):
-                                    st.success(f"✅ Estudiante '{student_to_delete}' eliminado exitosamente!")
-                                    st.rerun()
-                                else:
-                                    st.error("❌ Error al eliminar el estudiante.")
-                        
-                        with col_confirm2:
-                            if st.button("❌ Cancelar", key="confirm_delete_simple_no"):
-                                st.info("Eliminación cancelada.")
-                                st.rerun()
+                        # Guardar cambios
+                        if save_data(st.session_state.students, "students.json") and \
+                           save_data(st.session_state.cleaning_history, "cleaning_history.json"):
+                            st.session_state.confirm_delete = None
+                            st.success(f"✅ Estudiante '{student_to_delete}' eliminado exitosamente!")
+                            if cleaning_count > 0:
+                                st.success(f"✅ Removido de {cleaning_count} registro(s) de limpieza.")
+                            st.rerun()
+                        else:
+                            st.error("❌ Error al eliminar el estudiante.")
+                            st.session_state.confirm_delete = None
+                
+                with col_b:
+                    if st.button("❌ Cancelar", key="confirm_no"):
+                        st.session_state.confirm_delete = None
+                        st.rerun()
+            else:
+                # Botón inicial de eliminación
+                if st.button("🗑️ Eliminar Estudiante", type="secondary", key="delete_button"):
+                    st.session_state.confirm_delete = student_to_delete
+                    st.rerun()
     
     else:
         st.info("No hay estudiantes registrados aún.")
