@@ -1,13 +1,26 @@
 import streamlit as st
 import json
 import pandas as pd
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 import os
 import base64
+import pytz
 
 # SOLUCIÓN: Desactivar estadísticas para evitar errores de permisos
 os.environ['STREAMLIT_GATHER_USAGE_STATS'] = 'false'
 os.environ['STREAMLIT_SERVER_HEADLESS'] = 'true'
+
+# Configuración de zona horaria de Ecuador
+ECUADOR_TZ = pytz.timezone('America/Guayaquil')
+
+# FUNCIÓN PARA OBTENER LA FECHA ACTUAL EN ECUADOR
+def get_today_ecuador():
+    """Retorna la fecha actual en zona horaria de Ecuador"""
+    return datetime.now(ECUADOR_TZ).date()
+
+def get_now_ecuador():
+    """Retorna datetime actual en zona horaria de Ecuador"""
+    return datetime.now(ECUADOR_TZ)
 
 # Configuración de la página
 st.set_page_config(
@@ -176,8 +189,9 @@ def generate_pdf_report(records, week_dates):
         # Crear directorio de reportes si no existe
         os.makedirs("reportes", exist_ok=True)
         
-        # Nombre del archivo
-        pdf_path = f"reportes/reporte_limpieza_semana_{date.today().strftime('%Y-%m-%d')}.pdf"
+        # Nombre del archivo con fecha de Ecuador
+        today_ecuador = get_today_ecuador()
+        pdf_path = f"reportes/reporte_limpieza_semana_{today_ecuador.strftime('%Y-%m-%d')}.pdf"
         
         # Crear el documento PDF
         doc = SimpleDocTemplate(
@@ -299,7 +313,7 @@ def generate_pdf_report(records, week_dates):
             no_data = Paragraph("No hay registros de limpieza para esta semana.", no_data_style)
             story.append(no_data)
         
-        # Pie de página
+        # Pie de página con fecha de Ecuador
         story.append(Spacer(1, 30))
         footer_style = ParagraphStyle(
             'Footer',
@@ -308,8 +322,9 @@ def generate_pdf_report(records, week_dates):
             textColor=colors.gray,
             alignment=TA_CENTER
         )
+        now_ecuador = get_now_ecuador()
         footer = Paragraph(
-            f"Generado el {datetime.now().strftime('%d/%m/%Y %H:%M:%S')} - Sistema de Registro de Limpieza", 
+            f"Generado el {now_ecuador.strftime('%d/%m/%Y %H:%M:%S')} (Ecuador) - Sistema de Registro de Limpieza", 
             footer_style
         )
         story.append(footer)
@@ -358,9 +373,10 @@ def initialize_session_state():
         st.session_state.confirm_delete = None
 
 def get_current_week_dates():
-    today = date.today()
-    start_of_week = today - pd.Timedelta(days=today.weekday())
-    return [start_of_week + pd.Timedelta(days=i) for i in range(5)]
+    """Obtiene las fechas de la semana actual en zona horaria de Ecuador"""
+    today = get_today_ecuador()
+    start_of_week = today - timedelta(days=today.weekday())
+    return [start_of_week + timedelta(days=i) for i in range(5)]
 
 # FUNCIÓN PARA ACTUALIZAR REGISTROS DE LIMPIEZA CUANDO SE ELIMINA UN ESTUDIANTE
 def update_cleaning_records_after_deletion(student_name):
@@ -387,8 +403,12 @@ def update_cleaning_records_after_edit(old_name, new_name):
 
 initialize_session_state()
 
-# Encabezado principal
+# Encabezado principal con fecha actual de Ecuador
 st.markdown('<h1 class="main-header">🧹 Sistema de Registro de Limpieza</h1>', unsafe_allow_html=True)
+
+# Mostrar fecha actual de Ecuador
+today_ecuador = get_today_ecuador()
+st.info(f"📅 Fecha actual: {today_ecuador.strftime('%d/%m/%Y')} - Hora de Ecuador")
 
 # Sidebar para navegación
 with st.sidebar:
@@ -453,7 +473,7 @@ if page == "🏠 Inicio":
     except Exception as e:
         st.error(f"Error al cargar el resumen semanal: {e}")
 
-# Página de Estudiantes - CORREGIDA
+# Página de Estudiantes
 elif page == "👥 Estudiantes":
     st.markdown('<h2 class="section-header">Gestión de Estudiantes</h2>', unsafe_allow_html=True)
     
@@ -512,11 +532,12 @@ elif page == "👥 Estudiantes":
                         st.error("❌ Ya existe otro estudiante con ese nombre.")
                     else:
                         # Actualizar el estudiante
+                        now_ecuador = get_now_ecuador()
                         for student in st.session_state.students:
                             if student['nombre'] == old_name:
                                 student['nombre'] = student_name
                                 student['id'] = student_id.strip() if student_id else old_id
-                                student['fecha_actualizacion'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                                student['fecha_actualizacion'] = now_ecuador.strftime('%Y-%m-%d %H:%M:%S')
                                 break
                         
                         # Actualizar registros de limpieza
@@ -534,10 +555,11 @@ elif page == "👥 Estudiantes":
                     if student_name.upper() in existing_students:
                         st.error("❌ Este estudiante ya está registrado.")
                     else:
+                        now_ecuador = get_now_ecuador()
                         new_student = {
                             'id': student_id.strip() if student_id else f"ST{len(st.session_state.students) + 1:03d}",
                             'nombre': student_name,
-                            'fecha_registro': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                            'fecha_registro': now_ecuador.strftime('%Y-%m-%d %H:%M:%S')
                         }
                         st.session_state.students.append(new_student)
                         if save_data(st.session_state.students, "students.json"):
@@ -555,7 +577,7 @@ elif page == "👥 Estudiantes":
         students_df = pd.DataFrame(st.session_state.students)
         st.dataframe(students_df[['nombre', 'id']], use_container_width=True)
         
-        # Gestión de estudiantes (Editar/Eliminar) - CORREGIDO
+        # Gestión de estudiantes (Editar/Eliminar)
         st.markdown("### Gestión de Estudiantes")
         
         col1, col2 = st.columns(2)
@@ -642,7 +664,14 @@ elif page == "📝 Limpieza":
     with st.form("cleaning_form", clear_on_submit=True):
         col1, col2 = st.columns(2)
         with col1:
-            cleaning_date = st.date_input("Fecha de limpieza:", value=date.today(), key="cleaning_date")
+            # Usar fecha de Ecuador como valor predeterminado
+            today_ecuador = get_today_ecuador()
+            cleaning_date = st.date_input(
+                "Fecha de limpieza:", 
+                value=today_ecuador, 
+                max_value=today_ecuador,
+                key="cleaning_date"
+            )
             cleaning_type = st.selectbox("Tipo de limpieza:", ["Aula", "Baños"], key="cleaning_type")
         with col2:
             available_students = [s['nombre'] for s in st.session_state.students]
@@ -661,13 +690,14 @@ elif page == "📝 Limpieza":
                 if not all_registered:
                     st.error("❌ Uno o más estudiantes no están registrados. Por favor regístralos primero.")
                 else:
+                    now_ecuador = get_now_ecuador()
                     new_record = {
                         'fecha': cleaning_date.strftime('%Y-%m-%d'),
                         'dia_semana': ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"][cleaning_date.weekday()],
-                        'hora': datetime.now().strftime('%H:%M:%S'),
+                        'hora': now_ecuador.strftime('%H:%M:%S'),
                         'estudiantes': students_selected,
                         'tipo_limpieza': cleaning_type,
-                        'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                        'timestamp': now_ecuador.strftime('%Y-%m-%d %H:%M:%S')
                     }
                     st.session_state.cleaning_history.append(new_record)
                     if save_data(st.session_state.cleaning_history, "cleaning_history.json"):
@@ -680,14 +710,17 @@ elif page == "📝 Limpieza":
 elif page == "📊 Reportes":
     st.markdown('<h2 class="section-header">Historial y Reportes</h2>', unsafe_allow_html=True)
     
+    today_ecuador = get_today_ecuador()
+    week_ago = today_ecuador - timedelta(days=7)
+    
     col1, col2, col3 = st.columns(3)
     with col1:
         filter_type = st.selectbox("Filtrar por tipo:", ["Todos", "Aula", "Baños"], key="filter_type")
     with col2:
         date_range = st.date_input(
             "Rango de fechas:",
-            value=(date.today() - pd.Timedelta(days=7), date.today()),
-            max_value=date.today(),
+            value=(week_ago, today_ecuador),
+            max_value=today_ecuador,
             key="date_range"
         )
     with col3:
@@ -742,10 +775,11 @@ elif page == "📊 Reportes":
                             st.success("✅ PDF generado exitosamente!")
                             
                             # Botón de descarga
+                            today_ecuador = get_today_ecuador()
                             st.download_button(
                                 label="📄 Descargar PDF",
                                 data=pdf_data,
-                                file_name=f"reporte_limpieza_semana_{date.today().strftime('%Y-%m-%d')}.pdf",
+                                file_name=f"reporte_limpieza_semana_{today_ecuador.strftime('%Y-%m-%d')}.pdf",
                                 mime="application/pdf",
                                 key="download_pdf"
                             )
@@ -761,11 +795,13 @@ elif page == "📊 Reportes":
 
 # Footer
 st.markdown("---")
+now_ecuador = get_now_ecuador()
 st.markdown(
-    """
+    f"""
     <div style='text-align:center; color:#666; font-size:0.9em;'>
         <p>Sistema de Registro de Limpieza 🧹</p>
         <p>© 2025 ING. Irvin Adonis Mora Paredes. Todos los derechos reservados.</p>
+        <p style='font-size:0.8em; color:#999;'>Hora de Ecuador: {now_ecuador.strftime('%d/%m/%Y %H:%M:%S')}</p>
     </div>
     """,
     unsafe_allow_html=True
