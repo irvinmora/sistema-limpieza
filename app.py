@@ -351,24 +351,11 @@ def load_data(filename):
 
 def save_data(data, filename):
     try:
-        # Asegurar que el directorio data exista
         os.makedirs("data", exist_ok=True)
-        filepath = f"data/{filename}"
-        
-        # Guardar los datos en el archivo
-        with open(filepath, "w", encoding="utf-8") as f:
+        with open(f"data/{filename}", "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
-        
-        # Verificar que los datos se guardaron correctamente
-        with open(filepath, "r", encoding="utf-8") as f:
-            saved_data = json.load(f)
-            
-        # Comparar los datos guardados con los originales
-        if len(saved_data) == len(data):
-            return True
-        return False
-    except Exception as e:
-        print(f"Error al guardar {filename}: {str(e)}")
+        return True
+    except:
         return False
 
 def initialize_session_state():
@@ -724,16 +711,11 @@ elif page == "📝 Limpieza":
                         'tipo_limpieza': cleaning_type,
                         'timestamp': now_ecuador.strftime('%Y-%m-%d %H:%M:%S')
                     }
-                    # Agregar el registro a la lista en sesión
                     st.session_state.cleaning_history.append(new_record)
-                    # Intentar guardar inmediatamente
-                    saved = save_data(st.session_state.cleaning_history, "cleaning_history.json")
-                    if saved:
+                    if save_data(st.session_state.cleaning_history, "cleaning_history.json"):
                         st.success("✅ Limpieza registrada exitosamente!")
                         st.balloons()
                     else:
-                        # Si falla el guardado, revertir el cambio
-                        st.session_state.cleaning_history.pop()
                         st.error("❌ Error al guardar el registro de limpieza.")
 
 # Página de Reportes
