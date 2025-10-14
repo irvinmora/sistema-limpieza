@@ -337,8 +337,9 @@ def generate_pdf_report(records, week_dates):
         st.error(f"Error detallado al generar PDF: {str(e)}")
         return None
 
-# FUNCIONES PARA MANEJO DE DATOS
+# FUNCIONES PARA MANEJO DE DATOS - VERSIÓN SIMPLIFICADA
 def load_data(filename):
+    """Carga datos desde archivo JSON"""
     try:
         filepath = f"data/{filename}"
         if not os.path.exists(filepath) or os.path.getsize(filepath) == 0:
@@ -346,19 +347,23 @@ def load_data(filename):
         with open(filepath, "r", encoding="utf-8") as f:
             content = f.read().strip()
             return json.loads(content) if content else []
-    except:
+    except Exception as e:
+        print(f"Error cargando {filename}: {e}")
         return []
 
 def save_data(data, filename):
+    """Guarda datos en archivo JSON"""
     try:
         os.makedirs("data", exist_ok=True)
         with open(f"data/{filename}", "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
         return True
-    except:
+    except Exception as e:
+        print(f"Error guardando {filename}: {e}")
         return False
 
 def initialize_session_state():
+    """Inicializa el estado de la sesión"""
     if 'students' not in st.session_state:
         st.session_state.students = load_data("students.json")
     if 'cleaning_history' not in st.session_state:
@@ -401,6 +406,7 @@ def update_cleaning_records_after_edit(old_name, new_name):
             # Reemplazar el nombre antiguo por el nuevo
             record['estudiantes'] = [new_name if s == old_name else s for s in record['estudiantes']]
 
+# INICIALIZAR ESTADO DE LA SESIÓN
 initialize_session_state()
 
 # Encabezado principal con fecha actual de Ecuador
@@ -409,6 +415,9 @@ st.markdown('<h1 class="main-header">🧹 Sistema de Registro de Limpieza</h1>',
 # Mostrar fecha actual de Ecuador
 today_ecuador = get_today_ecuador()
 st.info(f"📅 Fecha actual: {today_ecuador.strftime('%d/%m/%Y')} - Hora de Ecuador")
+
+# Información sobre el almacenamiento
+st.success("💾 Los datos se guardan automáticamente en el servidor")
 
 # Sidebar para navegación
 with st.sidebar:
@@ -423,6 +432,12 @@ with st.sidebar:
         ["🏠 Inicio", "👥 Estudiantes", "📝 Limpieza", "📊 Reportes"],
         key="navigation"
     )
+    
+    # Información de datos en sidebar
+    st.markdown("---")
+    st.markdown("### 📊 Datos Actuales")
+    st.markdown(f"**Estudiantes:** {len(st.session_state.students)}")
+    st.markdown(f"**Registros:** {len(st.session_state.cleaning_history)}")
 
 # Página de Inicio
 if page == "🏠 Inicio":
@@ -547,6 +562,7 @@ elif page == "👥 Estudiantes":
                             st.success("✅ Estudiante actualizado exitosamente!")
                             st.session_state.edit_mode = False
                             st.session_state.editing_student = None
+                            st.rerun()
                         else:
                             st.error("❌ Error al guardar los cambios.")
                 else:
@@ -564,6 +580,7 @@ elif page == "👥 Estudiantes":
                         st.session_state.students.append(new_student)
                         if save_data(st.session_state.students, "students.json"):
                             st.success("✅ Estudiante registrado exitosamente!")
+                            st.rerun()
                         else:
                             st.error("❌ Error al guardar el estudiante.")
             else:
@@ -703,6 +720,7 @@ elif page == "📝 Limpieza":
                     if save_data(st.session_state.cleaning_history, "cleaning_history.json"):
                         st.success("✅ Limpieza registrada exitosamente!")
                         st.balloons()
+                        st.rerun()
                     else:
                         st.error("❌ Error al guardar el registro de limpieza.")
 
