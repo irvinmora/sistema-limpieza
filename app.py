@@ -351,18 +351,38 @@ def load_data(filename):
 
 def save_data(data, filename):
     try:
+        # Asegurar que el directorio data exista
         os.makedirs("data", exist_ok=True)
-        with open(f"data/{filename}", "w", encoding="utf-8") as f:
+        filepath = f"data/{filename}"
+        
+        # Guardar los datos en el archivo
+        with open(filepath, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
-        return True
-    except:
+        
+        # Verificar que los datos se guardaron correctamente
+        with open(filepath, "r", encoding="utf-8") as f:
+            saved_data = json.load(f)
+            
+        # Comparar los datos guardados con los originales
+        if len(saved_data) == len(data):
+            return True
+        return False
+    except Exception as e:
+        print(f"Error al guardar {filename}: {str(e)}")
         return False
 
 def initialize_session_state():
+    # Cargar datos desde archivos JSON
     if 'students' not in st.session_state:
-        st.session_state.students = load_data("students.json")
+        loaded_students = load_data("students.json")
+        st.session_state.students = loaded_students if loaded_students else []
+        save_data(st.session_state.students, "students.json")  # Asegurar que el archivo exista
+        
     if 'cleaning_history' not in st.session_state:
-        st.session_state.cleaning_history = load_data("cleaning_history.json")
+        loaded_history = load_data("cleaning_history.json")
+        st.session_state.cleaning_history = loaded_history if loaded_history else []
+        save_data(st.session_state.cleaning_history, "cleaning_history.json")  # Asegurar que el archivo exista
+        
     # Estado para edición
     if 'editing_student' not in st.session_state:
         st.session_state.editing_student = None
@@ -561,10 +581,15 @@ elif page == "👥 Estudiantes":
                             'nombre': student_name,
                             'fecha_registro': now_ecuador.strftime('%Y-%m-%d %H:%M:%S')
                         }
+                        # Agregar el estudiante a la lista en sesión
                         st.session_state.students.append(new_student)
-                        if save_data(st.session_state.students, "students.json"):
+                        # Intentar guardar inmediatamente
+                        saved = save_data(st.session_state.students, "students.json")
+                        if saved:
                             st.success("✅ Estudiante registrado exitosamente!")
                         else:
+                            # Si falla el guardado, revertir el cambio
+                            st.session_state.students.pop()
                             st.error("❌ Error al guardar el estudiante.")
             else:
                 st.error("❌ Por favor ingresa un nombre válido.")
@@ -699,11 +724,16 @@ elif page == "📝 Limpieza":
                         'tipo_limpieza': cleaning_type,
                         'timestamp': now_ecuador.strftime('%Y-%m-%d %H:%M:%S')
                     }
+                    # Agregar el registro a la lista en sesión
                     st.session_state.cleaning_history.append(new_record)
-                    if save_data(st.session_state.cleaning_history, "cleaning_history.json"):
+                    # Intentar guardar inmediatamente
+                    saved = save_data(st.session_state.cleaning_history, "cleaning_history.json")
+                    if saved:
                         st.success("✅ Limpieza registrada exitosamente!")
                         st.balloons()
                     else:
+                        # Si falla el guardado, revertir el cambio
+                        st.session_state.cleaning_history.pop()
                         st.error("❌ Error al guardar el registro de limpieza.")
 
 # Página de Reportes
