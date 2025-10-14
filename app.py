@@ -5,6 +5,7 @@ from datetime import datetime, date, timedelta
 import os
 import base64
 import pytz
+import requests
 
 # SOLUCIÓN: Desactivar estadísticas para evitar errores de permisos
 os.environ['STREAMLIT_GATHER_USAGE_STATS'] = 'false'
@@ -12,6 +13,12 @@ os.environ['STREAMLIT_SERVER_HEADLESS'] = 'true'
 
 # Configuración de zona horaria de Ecuador
 ECUADOR_TZ = pytz.timezone('America/Guayaquil')
+
+# CONFIGURACIÓN PARA HUGGING FACE SPACES
+# Usar GitHub Gist o similar para almacenamiento persistente
+GITHUB_GIST_TOKEN = st.secrets.get("GITHUB_GIST_TOKEN", "") if hasattr(st, 'secrets') else ""
+GIST_ID_STUDENTS = st.secrets.get("GIST_ID_STUDENTS", "") if hasattr(st, 'secrets') else ""
+GIST_ID_HISTORY = st.secrets.get("GIST_ID_HISTORY", "") if hasattr(st, 'secrets') else ""
 
 # FUNCIÓN PARA OBTENER LA FECHA ACTUAL EN ECUADOR
 def get_today_ecuador():
@@ -22,13 +29,110 @@ def get_now_ecuador():
     """Retorna datetime actual en zona horaria de Ecuador"""
     return datetime.now(ECUADOR_TZ)
 
-# Configuración de la página
-st.set_page_config(
-    page_title="Sistema de Registro de Limpieza",
-    page_icon="🧹",
-    layout="wide",
-    initial_sidebar_state="collapsed"
-)
+# SISTEMA DE ALMACENAMIENTO PERSISTENTE MEJORADO
+def save_to_github_gist(data, gist_id, filename):
+    """Guarda datos en GitHub Gist para persistencia"""
+    if not GITHUB_GIST_TOKEN or not gist_id:
+        return False
+    
+    try:
+        url = f"https://api.github.com/gists/{gist_id}"
+        headers = {
+            "Authorization": f"token {GITHUB_GIST_TOKEN}",
+            "Accept": "application/vnd.github.v3+json"
+        }
+        
+        files_content = {
+            filename: {
+                "content": json.dumps(data, ensure_ascii=False, indent=2)
+            }
+        }
+        
+        payload = {
+            "files": files_content,
+            "description": f"Sistema Limpieza - {filename}"
+        }
+        
+        response = requests.patch(url, headers=headers, json=payload)
+        return response.status_code == 200
+    except Exception as e:
+        print(f"Error guardando en Gist: {e}")
+        return False
+
+def load_from_github_gist(gist_id, filename):
+    """Carga datos desde GitHub Gist"""
+    if not gist_id:
+        return []
+    
+    try:
+        url = f"https://api.github.com/gists/{gist_id}"
+        headers = {
+            "Accept": "application/vnd.github.v3+json"
+        }
+        
+        response = requests.get(url, headers=headers)
+        if response.status_code == 200:
+            gist_data = response.json()
+            if filename in gist_data['files']:
+                content = gist_data['files'][filename]['content']
+                return json.loads(content) if content.strip() else []
+        return []
+    except Exception as e:
+        print(f"Error cargando desde Gist: {e}")
+        return []
+
+# FUNCIONES MEJORADAS PARA MANEJO DE DATOS CON PERSISTENCIA
+def load_data(filename):
+    """Carga datos con prioridad en almacenamiento persistente"""
+    try:
+        # Primero intentar cargar desde GitHub Gist si está configurado
+        if filename == "students.json" and GIST_ID_STUDENTS:
+            data = load_from_github_gist(GIST_ID_STUDENTS, filename)
+            if data is not None:
+                return data
+        
+        if filename == "cleaning_history.json" and GIST_ID_HISTORY:
+            data = load_from_github_gist(GIST_ID_HISTORY, filename)
+            if data is not None:
+                return data
+        
+        # Fallback a almacenamiento local
+        filepath = f"data/{filename}"
+        if not os.path.exists(filepath) or os.path.getsize(filepath) == 0:
+            return []
+        with open(filepath, "r", encoding="utf-8") as f:
+            content = f.read().strip()
+            return json.loads(content) if content else []
+    except Exception as e:
+        print(f"Error cargando datos: {e}")
+        return []
+
+def save_data(data, filename):
+    """Guarda datos tanto localmente como en almacenamiento persistente"""
+    success_local = False
+    success_remote = False
+    
+    # Guardar localmente
+    try:
+        os.makedirs("data", exist_ok=True)
+        with open(f"data/{filename}", "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        success_local = True
+    except Exception as e:
+        print(f"Error guardando localmente: {e}")
+        success_local = False
+    
+    # Guardar en almacenamiento persistente (GitHub Gist)
+    try:
+        if filename == "students.json" and GIST_ID_STUDENTS:
+            success_remote = save_to_github_gist(data, GIST_ID_STUDENTS, filename)
+        elif filename == "cleaning_history.json" and GIST_ID_HISTORY:
+            success_remote = save_to_github_gist(data, GIST_ID_HISTORY, filename)
+    except Exception as e:
+        print(f"Error guardando remotamente: {e}")
+        success_remote = False
+    
+    return success_local or success_remote
 
 # Intentar importar reportlab silenciosamente
 try:
@@ -337,28 +441,8 @@ def generate_pdf_report(records, week_dates):
         st.error(f"Error detallado al generar PDF: {str(e)}")
         return None
 
-# FUNCIONES PARA MANEJO DE DATOS
-def load_data(filename):
-    try:
-        filepath = f"data/{filename}"
-        if not os.path.exists(filepath) or os.path.getsize(filepath) == 0:
-            return []
-        with open(filepath, "r", encoding="utf-8") as f:
-            content = f.read().strip()
-            return json.loads(content) if content else []
-    except:
-        return []
-
-def save_data(data, filename):
-    try:
-        os.makedirs("data", exist_ok=True)
-        with open(f"data/{filename}", "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
-        return True
-    except:
-        return False
-
 def initialize_session_state():
+    """Inicializa el estado de la sesión con carga de datos persistente"""
     if 'students' not in st.session_state:
         st.session_state.students = load_data("students.json")
     if 'cleaning_history' not in st.session_state:
@@ -371,6 +455,12 @@ def initialize_session_state():
     # Estado para confirmación de eliminación
     if 'confirm_delete' not in st.session_state:
         st.session_state.confirm_delete = None
+    # Estado para información de almacenamiento
+    if 'storage_info' not in st.session_state:
+        st.session_state.storage_info = {
+            'using_persistent_storage': bool(GITHUB_GIST_TOKEN and GIST_ID_STUDENTS and GIST_ID_HISTORY),
+            'last_sync': get_now_ecuador().strftime('%Y-%m-%d %H:%M:%S')
+        }
 
 def get_current_week_dates():
     """Obtiene las fechas de la semana actual en zona horaria de Ecuador"""
@@ -401,6 +491,7 @@ def update_cleaning_records_after_edit(old_name, new_name):
             # Reemplazar el nombre antiguo por el nuevo
             record['estudiantes'] = [new_name if s == old_name else s for s in record['estudiantes']]
 
+# INICIALIZAR ESTADO DE LA SESIÓN
 initialize_session_state()
 
 # Encabezado principal con fecha actual de Ecuador
@@ -409,6 +500,12 @@ st.markdown('<h1 class="main-header">🧹 Sistema de Registro de Limpieza</h1>',
 # Mostrar fecha actual de Ecuador
 today_ecuador = get_today_ecuador()
 st.info(f"📅 Fecha actual: {today_ecuador.strftime('%d/%m/%Y')} - Hora de Ecuador")
+
+# Mostrar información de almacenamiento
+if st.session_state.storage_info['using_persistent_storage']:
+    st.success("✅ Usando almacenamiento persistente - Los datos se mantendrán entre sesiones")
+else:
+    st.warning("⚠️ Usando almacenamiento local - Los datos pueden perderse al reiniciar")
 
 # Sidebar para navegación
 with st.sidebar:
@@ -423,6 +520,22 @@ with st.sidebar:
         ["🏠 Inicio", "👥 Estudiantes", "📝 Limpieza", "📊 Reportes"],
         key="navigation"
     )
+    
+    # Información de datos en sidebar
+    st.markdown("---")
+    st.markdown("### 📊 Datos Actuales")
+    st.markdown(f"**Estudiantes:** {len(st.session_state.students)}")
+    st.markdown(f"**Registros:** {len(st.session_state.cleaning_history)}")
+    
+    # Botón para forzar sincronización
+    if st.session_state.storage_info['using_persistent_storage']:
+        if st.button("🔄 Sincronizar Datos"):
+            # Recargar datos desde almacenamiento persistente
+            st.session_state.students = load_data("students.json")
+            st.session_state.cleaning_history = load_data("cleaning_history.json")
+            st.session_state.storage_info['last_sync'] = get_now_ecuador().strftime('%Y-%m-%d %H:%M:%S')
+            st.success("✅ Datos sincronizados correctamente")
+            st.rerun()
 
 # Página de Inicio
 if page == "🏠 Inicio":
@@ -547,6 +660,7 @@ elif page == "👥 Estudiantes":
                             st.success("✅ Estudiante actualizado exitosamente!")
                             st.session_state.edit_mode = False
                             st.session_state.editing_student = None
+                            st.rerun()
                         else:
                             st.error("❌ Error al guardar los cambios.")
                 else:
@@ -564,6 +678,7 @@ elif page == "👥 Estudiantes":
                         st.session_state.students.append(new_student)
                         if save_data(st.session_state.students, "students.json"):
                             st.success("✅ Estudiante registrado exitosamente!")
+                            st.rerun()
                         else:
                             st.error("❌ Error al guardar el estudiante.")
             else:
@@ -703,6 +818,7 @@ elif page == "📝 Limpieza":
                     if save_data(st.session_state.cleaning_history, "cleaning_history.json"):
                         st.success("✅ Limpieza registrada exitosamente!")
                         st.balloons()
+                        st.rerun()
                     else:
                         st.error("❌ Error al guardar el registro de limpieza.")
 
@@ -802,6 +918,7 @@ st.markdown(
         <p>Sistema de Registro de Limpieza 🧹</p>
         <p>© 2025 ING. Irvin Adonis Mora Paredes. Todos los derechos reservados.</p>
         <p style='font-size:0.8em; color:#999;'>Hora de Ecuador: {now_ecuador.strftime('%d/%m/%Y %H:%M:%S')}</p>
+        <p style='font-size:0.8em; color:#999;'>Última sincronización: {st.session_state.storage_info['last_sync']}</p>
     </div>
     """,
     unsafe_allow_html=True
