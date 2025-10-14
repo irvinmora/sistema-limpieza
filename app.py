@@ -339,38 +339,86 @@ def generate_pdf_report(records, week_dates):
 
 # FUNCIONES PARA MANEJO DE DATOS
 def load_data(filename):
+    """Carga datos desde un archivo JSON"""
     try:
+        # Asegurar que el directorio data exista
+        os.makedirs("data", exist_ok=True)
         filepath = f"data/{filename}"
-        if not os.path.exists(filepath) or os.path.getsize(filepath) == 0:
+        
+        # Si el archivo no existe, crearlo vacío
+        if not os.path.exists(filepath):
+            with open(filepath, "w", encoding="utf-8") as f:
+                json.dump([], f)
             return []
+            
+        # Leer el archivo existente
         with open(filepath, "r", encoding="utf-8") as f:
             content = f.read().strip()
             return json.loads(content) if content else []
-    except:
+    except Exception as e:
+        print(f"Error al cargar {filename}: {str(e)}")
         return []
 
 def save_data(data, filename):
+    """Guarda datos en un archivo JSON"""
     try:
+        # Asegurar que el directorio data exista
         os.makedirs("data", exist_ok=True)
-        with open(f"data/{filename}", "w", encoding="utf-8") as f:
+        filepath = f"data/{filename}"
+        
+        # Guardar los datos
+        with open(filepath, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
+            f.flush()  # Forzar escritura a disco
+            os.fsync(f.fileno())  # Asegurar que se escriba en disco
+        
+        # Verificar que los datos se guardaron correctamente
+        with open(filepath, "r", encoding="utf-8") as f:
+            saved_content = f.read().strip()
+            if not saved_content:
+                print(f"Error: {filename} está vacío después de guardar")
+                return False
+            
+            saved_data = json.loads(saved_content)
+            if len(saved_data) != len(data):
+                print(f"Error: Discrepancia en el número de elementos guardados en {filename}")
+                return False
+                
         return True
-    except:
+    except Exception as e:
+        print(f"Error al guardar {filename}: {str(e)}")
         return False
 
 def initialize_session_state():
+    """Inicializa el estado de la sesión y asegura que los archivos de datos existan"""
+    # Inicializar o cargar lista de estudiantes
     if 'students' not in st.session_state:
         st.session_state.students = load_data("students.json")
+        # Asegurar que el archivo exista y tenga los datos
+        save_data(st.session_state.students, "students.json")
+    
+    # Inicializar o cargar historial de limpieza
     if 'cleaning_history' not in st.session_state:
         st.session_state.cleaning_history = load_data("cleaning_history.json")
+        # Asegurar que el archivo exista y tenga los datos
+        save_data(st.session_state.cleaning_history, "cleaning_history.json")
+    
     # Estado para edición
     if 'editing_student' not in st.session_state:
         st.session_state.editing_student = None
     if 'edit_mode' not in st.session_state:
         st.session_state.edit_mode = False
+    
     # Estado para confirmación de eliminación
     if 'confirm_delete' not in st.session_state:
         st.session_state.confirm_delete = None
+    
+    # Reiniciar estado si los archivos están vacíos
+    if not st.session_state.students and not st.session_state.cleaning_history:
+        st.session_state.students = []
+        st.session_state.cleaning_history = []
+        save_data(st.session_state.students, "students.json")
+        save_data(st.session_state.cleaning_history, "cleaning_history.json")
 
 def get_current_week_dates():
     """Obtiene las fechas de la semana actual en zona horaria de Ecuador"""
@@ -561,10 +609,21 @@ elif page == "👥 Estudiantes":
                             'nombre': student_name,
                             'fecha_registro': now_ecuador.strftime('%Y-%m-%d %H:%M:%S')
                         }
+                        # Agregar el estudiante a la lista en sesión
                         st.session_state.students.append(new_student)
+                        
+                        # Intentar guardar y verificar
                         if save_data(st.session_state.students, "students.json"):
-                            st.success("✅ Estudiante registrado exitosamente!")
+                            # Verificar que se guardó correctamente
+                            saved_students = load_data("students.json")
+                            if any(s['nombre'] == student_name for s in saved_students):
+                                st.success("✅ Estudiante registrado exitosamente!")
+                            else:
+                                st.session_state.students.remove(new_student)
+                                st.error("❌ Error al verificar el guardado del estudiante.")
                         else:
+                            # Si falla el guardado, revertir el cambio
+                            st.session_state.students.remove(new_student)
                             st.error("❌ Error al guardar el estudiante.")
             else:
                 st.error("❌ Por favor ingresa un nombre válido.")
@@ -699,11 +758,23 @@ elif page == "📝 Limpieza":
                         'tipo_limpieza': cleaning_type,
                         'timestamp': now_ecuador.strftime('%Y-%m-%d %H:%M:%S')
                     }
+                    
+                    # Agregar el registro a la lista en sesión
                     st.session_state.cleaning_history.append(new_record)
+                    
+                    # Intentar guardar y verificar
                     if save_data(st.session_state.cleaning_history, "cleaning_history.json"):
-                        st.success("✅ Limpieza registrada exitosamente!")
-                        st.balloons()
+                        # Verificar que se guardó correctamente
+                        saved_history = load_data("cleaning_history.json")
+                        if any(r['timestamp'] == new_record['timestamp'] for r in saved_history):
+                            st.success("✅ Limpieza registrada exitosamente!")
+                            st.balloons()
+                        else:
+                            st.session_state.cleaning_history.pop()
+                            st.error("❌ Error al verificar el guardado del registro de limpieza.")
                     else:
+                        # Si falla el guardado, revertir el cambio
+                        st.session_state.cleaning_history.pop()
                         st.error("❌ Error al guardar el registro de limpieza.")
 
 # Página de Reportes
