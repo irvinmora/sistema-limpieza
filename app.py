@@ -5,9 +5,6 @@ from datetime import datetime, date, timedelta
 import os
 import base64
 import pytz
-import gspread
-from google.oauth2.service_account import Credentials
-from oauth2client.service_account import ServiceAccountCredentials
 
 # SOLUCIÓN: Desactivar estadísticas para evitar errores de permisos
 os.environ['STREAMLIT_GATHER_USAGE_STATS'] = 'false'
@@ -15,11 +12,6 @@ os.environ['STREAMLIT_SERVER_HEADLESS'] = 'true'
 
 # Configuración de zona horaria de Ecuador
 ECUADOR_TZ = pytz.timezone('America/Guayaquil')
-
-# CONFIGURACIÓN GOOGLE SHEETS
-# Si no se configura, usará almacenamiento local
-GOOGLE_CREDENTIALS = st.secrets.get("GOOGLE_CREDENTIALS", {}) if hasattr(st, 'secrets') else {}
-GOOGLE_SHEET_URL = st.secrets.get("GOOGLE_SHEET_URL", "") if hasattr(st, 'secrets') else ""
 
 # FUNCIÓN PARA OBTENER LA FECHA ACTUAL EN ECUADOR
 def get_today_ecuador():
@@ -29,170 +21,6 @@ def get_today_ecuador():
 def get_now_ecuador():
     """Retorna datetime actual en zona horaria de Ecuador"""
     return datetime.now(ECUADOR_TZ)
-
-# SISTEMA DE ALMACENAMIENTO CON GOOGLE SHEETS
-def get_google_sheets_client():
-    """Conecta con Google Sheets usando las credenciales"""
-    if not GOOGLE_CREDENTIALS:
-        return None
-    
-    try:
-        # Crear credenciales desde los secrets
-        creds_dict = GOOGLE_CREDENTIALS
-        scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
-        
-        # Crear credenciales
-        creds = Credentials.from_service_account_info(creds_dict, scopes=scope)
-        client = gspread.authorize(creds)
-        return client
-    except Exception as e:
-        st.error(f"Error conectando con Google Sheets: {e}")
-        return None
-
-def load_from_google_sheets():
-    """Carga datos desde Google Sheets"""
-    if not GOOGLE_SHEET_URL or not GOOGLE_CREDENTIALS:
-        return None, None
-    
-    try:
-        client = get_google_sheets_client()
-        if not client:
-            return None, None
-        
-        # Abrir la hoja de cálculo
-        spreadsheet = client.open_by_url(GOOGLE_SHEET_URL)
-        
-        # Cargar estudiantes
-        try:
-            students_sheet = spreadsheet.worksheet("Estudiantes")
-            students_data = students_sheet.get_all_records()
-            students = [s for s in students_data if s.get('nombre')]  # Filtrar filas vacías
-        except:
-            students = []
-        
-        # Cargar historial de limpieza
-        try:
-            history_sheet = spreadsheet.worksheet("Limpieza")
-            history_data = history_sheet.get_all_records()
-            # Convertir estudiantes de string a lista
-            for record in history_data:
-                if 'estudiantes' in record and isinstance(record['estudiantes'], str):
-                    record['estudiantes'] = [s.strip() for s in record['estudiantes'].split(',')]
-            cleaning_history = [h for h in history_data if h.get('fecha')]  # Filtrar filas vacías
-        except:
-            cleaning_history = []
-        
-        return students, cleaning_history
-        
-    except Exception as e:
-        st.error(f"Error cargando desde Google Sheets: {e}")
-        return None, None
-
-def save_to_google_sheets(students, cleaning_history):
-    """Guarda datos en Google Sheets"""
-    if not GOOGLE_SHEET_URL or not GOOGLE_CREDENTIALS:
-        return False
-    
-    try:
-        client = get_google_sheets_client()
-        if not client:
-            return False
-        
-        spreadsheet = client.open_by_url(GOOGLE_SHEET_URL)
-        
-        # Guardar estudiantes
-        try:
-            students_sheet = spreadsheet.worksheet("Estudiantes")
-        except:
-            # Crear hoja si no existe
-            students_sheet = spreadsheet.add_worksheet(title="Estudiantes", rows="1000", cols="10")
-            students_sheet.append_row(["id", "nombre", "fecha_registro", "fecha_actualizacion"])
-        
-        # Limpiar y actualizar datos de estudiantes
-        students_sheet.clear()
-        if students:
-            # Preparar datos para Google Sheets
-            students_df = pd.DataFrame(students)
-            students_sheet.update([students_df.columns.values.tolist()] + students_df.values.tolist())
-        
-        # Guardar historial de limpieza
-        try:
-            history_sheet = spreadsheet.worksheet("Limpieza")
-        except:
-            # Crear hoja si no existe
-            history_sheet = spreadsheet.add_worksheet(title="Limpieza", rows="1000", cols="10")
-            history_sheet.append_row(["fecha", "dia_semana", "hora", "estudiantes", "tipo_limpieza", "timestamp"])
-        
-        # Preparar datos de limpieza para Google Sheets
-        if cleaning_history:
-            history_for_sheets = []
-            for record in cleaning_history:
-                # Convertir lista de estudiantes a string
-                record_copy = record.copy()
-                if 'estudiantes' in record_copy and isinstance(record_copy['estudiantes'], list):
-                    record_copy['estudiantes'] = ', '.join(record_copy['estudiantes'])
-                history_for_sheets.append(record_copy)
-            
-            history_df = pd.DataFrame(history_for_sheets)
-            history_sheet.clear()
-            history_sheet.update([history_df.columns.values.tolist()] + history_df.values.tolist())
-        
-        return True
-        
-    except Exception as e:
-        st.error(f"Error guardando en Google Sheets: {e}")
-        return False
-
-# FUNCIONES MEJORADAS PARA MANEJO DE DATOS
-def load_data(filename):
-    """Carga datos con prioridad en Google Sheets"""
-    # Primero intentar desde Google Sheets si está configurado
-    if GOOGLE_SHEET_URL and GOOGLE_CREDENTIALS:
-        students, cleaning_history = load_from_google_sheets()
-        if students is not None and cleaning_history is not None:
-            if filename == "students.json":
-                return students
-            elif filename == "cleaning_history.json":
-                return cleaning_history
-    
-    # Fallback a almacenamiento local
-    try:
-        filepath = f"data/{filename}"
-        if not os.path.exists(filepath) or os.path.getsize(filepath) == 0:
-            return []
-        with open(filepath, "r", encoding="utf-8") as f:
-            content = f.read().strip()
-            return json.loads(content) if content else []
-    except:
-        return []
-
-def save_data(data, filename):
-    """Guarda datos tanto localmente como en Google Sheets"""
-    success_local = False
-    success_google = False
-    
-    # Guardar localmente
-    try:
-        os.makedirs("data", exist_ok=True)
-        with open(f"data/{filename}", "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
-        success_local = True
-    except Exception as e:
-        print(f"Error guardando localmente: {e}")
-    
-    # Guardar en Google Sheets si está configurado
-    if GOOGLE_SHEET_URL and GOOGLE_CREDENTIALS:
-        # Necesitamos ambos conjuntos de datos para guardar en Sheets
-        if filename == "students.json":
-            students = data
-            cleaning_history = st.session_state.cleaning_history
-        elif filename == "cleaning_history.json":
-            students = st.session_state.students
-            cleaning_history = data
-        
-        success_google = save_to_google_sheets(students, cleaning_history)
-    
-    return success_local or success_google
 
 # Configuración de la página
 st.set_page_config(
@@ -212,11 +40,27 @@ try:
     from reportlab.lib.units import inch
     PDF_AVAILABLE = True
 except ImportError:
-    PDF_AVAILABLE = False
+    # Intentar instalar reportlab solo si no está disponible
+    try:
+        import subprocess
+        import sys
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "reportlab"], 
+                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        # Reintentar importación después de la instalación
+        from reportlab.lib.pagesizes import letter, A4
+        from reportlab.pdfgen import canvas
+        from reportlab.lib.styles import getSampleStyleSheet
+        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+        from reportlab.lib import colors
+        from reportlab.lib.units import inch
+        PDF_AVAILABLE = True
+    except:
+        PDF_AVAILABLE = False
 
 # Estilos CSS personalizados y responsivos
 st.markdown("""
 <style>
+    /* Estilos base responsivos */
     .main-header {
         font-size: 2.5rem;
         color: red;
@@ -251,13 +95,87 @@ st.markdown("""
         margin: 1rem 0;
     }
     
-    .info-message {
+    .error-message {
         padding: 1rem;
-        background-color: #d1ecf1;
-        border: 1px solid #bee5eb;
+        background-color: #f8d7da;
+        border: 1px solid #f5c6cb;
         border-radius: 0.5rem;
-        color: #0c5460;
+        color: #721c24;
         margin: 1rem 0;
+    }
+    
+    /* Sidebar responsiva */
+    @media (max-width: 768px) {
+        .css-1d391kg {
+            transition: transform 0.3s ease;
+        }
+        
+        .main-header {
+            font-size: 2rem;
+            margin-top: 3rem;
+        }
+        
+        .section-header {
+            font-size: 1.5rem;
+        }
+        
+        /* Ajustes para columnas en móviles */
+        .row-widget.stColumns {
+            flex-direction: column;
+        }
+        
+        .row-widget.stColumns > div {
+            width: 100% !important;
+            margin-bottom: 1rem;
+        }
+        
+        /* Ajustes para métricas */
+        .element-container .stMetric {
+            margin-bottom: 1rem;
+        }
+        
+        /* Ajustes para formularios */
+        .stForm {
+            padding: 1rem;
+        }
+        
+        /* Ajustes para dataframes */
+        .dataframe {
+            font-size: 0.8rem;
+        }
+        
+        /* Ajustes para botones */
+        .stButton button {
+            padding: 0.8rem 1rem;
+            font-size: 0.9rem;
+        }
+    }
+    
+    /* Tablets */
+    @media (min-width: 769px) and (max-width: 1024px) {
+        .main-header {
+            font-size: 2.2rem;
+        }
+        
+        .section-header {
+            font-size: 1.6rem;
+        }
+    }
+    
+    /* Mejoras para inputs en móviles */
+    @media (max-width: 768px) {
+        .stTextInput input, 
+        .stSelectbox select, 
+        .stDateInput input {
+            font-size: 16px !important; /* Previene zoom en iOS */
+            padding: 12px !important;
+        }
+    }
+    
+    /* Mejoras para la sidebar */
+    .css-1d391kg {
+        background: #f8f9fa !important;
+        border-right: 1px solid #e9ecef !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -268,10 +186,14 @@ def generate_pdf_report(records, week_dates):
         if not PDF_AVAILABLE:
             raise ImportError("reportlab no está disponible")
             
+        # Crear directorio de reportes si no existe
         os.makedirs("reportes", exist_ok=True)
+        
+        # Nombre del archivo con fecha de Ecuador
         today_ecuador = get_today_ecuador()
         pdf_path = f"reportes/reporte_limpieza_semana_{today_ecuador.strftime('%Y-%m-%d')}.pdf"
         
+        # Crear el documento PDF
         doc = SimpleDocTemplate(
             pdf_path,
             pagesize=A4,
@@ -281,9 +203,11 @@ def generate_pdf_report(records, week_dates):
             bottomMargin=18
         )
         
+        # Contenido del PDF
         story = []
         styles = getSampleStyleSheet()
         
+        # Título
         from reportlab.lib.styles import ParagraphStyle
         from reportlab.lib.enums import TA_CENTER
         
@@ -298,6 +222,7 @@ def generate_pdf_report(records, week_dates):
         title = Paragraph("REPORTE SEMANAL DE LIMPIEZA", title_style)
         story.append(title)
         
+        # Información de la semana
         week_info_style = ParagraphStyle(
             'WeekInfo',
             parent=styles['Normal'],
@@ -313,11 +238,15 @@ def generate_pdf_report(records, week_dates):
         
         story.append(Spacer(1, 20))
         
+        # Preparar datos para la tabla
         if records:
+            # Encabezados de la tabla
             table_data = [['Fecha', 'Día', 'Estudiantes', 'Área', 'Hora']]
             
             for record in records:
+                # Limpiar caracteres problemáticos
                 estudiantes = ', '.join(record['estudiantes'])
+                # Reemplazar caracteres especiales
                 estudiantes = estudiantes.replace('•', '-').replace('–', '-').replace('—', '-')
                 
                 fecha_obj = datetime.strptime(record['fecha'], '%Y-%m-%d')
@@ -331,6 +260,7 @@ def generate_pdf_report(records, week_dates):
                     record['hora']
                 ])
             
+            # Crear tabla
             table = Table(table_data, colWidths=[70, 60, 180, 60, 50])
             table.setStyle(TableStyle([
                 ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2e86ab')),
@@ -343,11 +273,14 @@ def generate_pdf_report(records, week_dates):
                 ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
                 ('FONTSIZE', (0, 1), (-1, -1), 8),
                 ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
             ]))
             
             story.append(table)
             
+            # Estadísticas
             story.append(Spacer(1, 25))
+            
             stats_style = ParagraphStyle(
                 'Stats',
                 parent=styles['Normal'],
@@ -369,6 +302,7 @@ def generate_pdf_report(records, week_dates):
             stats = Paragraph(stats_text, stats_style)
             story.append(stats)
         else:
+            # Mensaje cuando no hay registros
             no_data_style = ParagraphStyle(
                 'NoData',
                 parent=styles['Normal'],
@@ -379,6 +313,7 @@ def generate_pdf_report(records, week_dates):
             no_data = Paragraph("No hay registros de limpieza para esta semana.", no_data_style)
             story.append(no_data)
         
+        # Pie de página con fecha de Ecuador
         story.append(Spacer(1, 30))
         footer_style = ParagraphStyle(
             'Footer',
@@ -394,27 +329,48 @@ def generate_pdf_report(records, week_dates):
         )
         story.append(footer)
         
+        # Generar PDF
         doc.build(story)
         return pdf_path
         
     except Exception as e:
-        st.error(f"Error al generar PDF: {str(e)}")
+        st.error(f"Error detallado al generar PDF: {str(e)}")
         return None
 
+# FUNCIONES PARA MANEJO DE DATOS
+def load_data(filename):
+    try:
+        filepath = f"data/{filename}"
+        if not os.path.exists(filepath) or os.path.getsize(filepath) == 0:
+            return []
+        with open(filepath, "r", encoding="utf-8") as f:
+            content = f.read().strip()
+            return json.loads(content) if content else []
+    except:
+        return []
+
+def save_data(data, filename):
+    try:
+        os.makedirs("data", exist_ok=True)
+        with open(f"data/{filename}", "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        return True
+    except:
+        return False
+
 def initialize_session_state():
-    """Inicializa el estado de la sesión"""
     if 'students' not in st.session_state:
         st.session_state.students = load_data("students.json")
     if 'cleaning_history' not in st.session_state:
         st.session_state.cleaning_history = load_data("cleaning_history.json")
+    # Estado para edición
     if 'editing_student' not in st.session_state:
         st.session_state.editing_student = None
     if 'edit_mode' not in st.session_state:
         st.session_state.edit_mode = False
+    # Estado para confirmación de eliminación
     if 'confirm_delete' not in st.session_state:
         st.session_state.confirm_delete = None
-    if 'last_sync' not in st.session_state:
-        st.session_state.last_sync = get_now_ecuador().strftime('%Y-%m-%d %H:%M:%S')
 
 def get_current_week_dates():
     """Obtiene las fechas de la semana actual en zona horaria de Ecuador"""
@@ -422,23 +378,29 @@ def get_current_week_dates():
     start_of_week = today - timedelta(days=today.weekday())
     return [start_of_week + timedelta(days=i) for i in range(5)]
 
+# FUNCIÓN PARA ACTUALIZAR REGISTROS DE LIMPIEZA CUANDO SE ELIMINA UN ESTUDIANTE
 def update_cleaning_records_after_deletion(student_name):
     """Elimina al estudiante de todos los registros de limpieza donde aparece"""
     updated_records = []
     for record in st.session_state.cleaning_history:
+        # Filtrar el estudiante eliminado de la lista de estudiantes
         updated_students = [s for s in record['estudiantes'] if s != student_name]
+        
+        # Solo mantener el registro si todavía tiene estudiantes
         if updated_students:
             record['estudiantes'] = updated_students
             updated_records.append(record)
+    
     return updated_records
 
+# FUNCIÓN PARA ACTUALIZAR REGISTROS DE LIMPIEZA CUANDO SE EDITA UN ESTUDIANTE
 def update_cleaning_records_after_edit(old_name, new_name):
     """Actualiza el nombre del estudiante en todos los registros de limpieza"""
     for record in st.session_state.cleaning_history:
         if old_name in record['estudiantes']:
+            # Reemplazar el nombre antiguo por el nuevo
             record['estudiantes'] = [new_name if s == old_name else s for s in record['estudiantes']]
 
-# INICIALIZAR ESTADO DE LA SESIÓN
 initialize_session_state()
 
 # Encabezado principal con fecha actual de Ecuador
@@ -447,43 +409,6 @@ st.markdown('<h1 class="main-header">🧹 Sistema de Registro de Limpieza</h1>',
 # Mostrar fecha actual de Ecuador
 today_ecuador = get_today_ecuador()
 st.info(f"📅 Fecha actual: {today_ecuador.strftime('%d/%m/%Y')} - Hora de Ecuador")
-
-# Información sobre el almacenamiento
-if GOOGLE_SHEET_URL and GOOGLE_CREDENTIALS:
-    st.success("📊 **Google Sheets activado** - Los datos se comparten entre todos los dispositivos")
-    st.info(f"Última sincronización: {st.session_state.last_sync}")
-else:
-    st.warning("💾 **Almacenamiento local** - Los datos solo están en este dispositivo")
-    st.markdown("""
-    <div class="info-message">
-    <strong>💡 Para habilitar sincronización entre dispositivos con Google Sheets:</strong><br>
-    1. Crea una hoja de cálculo en Google Sheets<br>
-    2. Compártela con acceso de edición para el servicio<br>
-    3. Configura las credenciales en Hugging Face Secrets<br>
-    4. Agrega la URL de la hoja de cálculo<br>
-    <em>Configuración automática disponible en el botón de abajo</em>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # Botón para configuración guiada
-    if st.button("🛠️ Configurar Google Sheets"):
-        st.markdown("""
-        ### Configuración de Google Sheets
-        
-        **Paso 1:** Crear una hoja de cálculo en [Google Sheets](https://sheets.google.com)
-        
-        **Paso 2:** Compartir la hoja:
-        - Haz clic en "Compartir"
-        - Da acceso de **Editor** a la cuenta de servicio
-        
-        **Paso 3:** Obtener la URL de la hoja (ej: `https://docs.google.com/spreadsheets/d/TU_ID_AQUI/edit`)
-        
-        **Paso 4:** Configurar en Hugging Face Secrets:
-        ```toml
-        GOOGLE_SHEET_URL = "tu_url_de_google_sheets"
-        GOOGLE_CREDENTIALS = { "type": "service_account", ... }
-        ```
-        """)
 
 # Sidebar para navegación
 with st.sidebar:
@@ -498,37 +423,20 @@ with st.sidebar:
         ["🏠 Inicio", "👥 Estudiantes", "📝 Limpieza", "📊 Reportes"],
         key="navigation"
     )
-    
-    st.markdown("---")
-    st.markdown("### 📊 Datos Actuales")
-    st.markdown(f"**Estudiantes:** {len(st.session_state.students)}")
-    st.markdown(f"**Registros:** {len(st.session_state.cleaning_history)}")
-    
-    # Botón para sincronizar con Google Sheets
-    if GOOGLE_SHEET_URL and GOOGLE_CREDENTIALS:
-        if st.button("🔄 Sincronizar con Google Sheets"):
-            with st.spinner("Sincronizando..."):
-                # Recargar datos desde Google Sheets
-                new_students, new_history = load_from_google_sheets()
-                
-                if new_students is not None:
-                    st.session_state.students = new_students
-                if new_history is not None:
-                    st.session_state.cleaning_history = new_history
-                
-                st.session_state.last_sync = get_now_ecuador().strftime('%Y-%m-%d %H:%M:%S')
-                st.success("✅ Datos sincronizados correctamente")
-                st.rerun()
 
 # Página de Inicio
 if page == "🏠 Inicio":
     st.markdown('<h2 class="section-header">Dashboard Principal</h2>', unsafe_allow_html=True)
     
+    # Métricas en columnas responsivas
     col1, col2, col3 = st.columns(3)
+    
     with col1:
         st.metric("Total Estudiantes", len(st.session_state.students))
+    
     with col2:
         st.metric("Registros Totales", len(st.session_state.cleaning_history))
+    
     with col3:
         week_records = []
         try:
@@ -539,6 +447,7 @@ if page == "🏠 Inicio":
             week_records = []
         st.metric("Limpiezas Esta Semana", len(week_records))
     
+    # Resumen de limpiezas de la semana actual
     st.markdown('<h2 class="section-header">Resumen Semanal</h2>', unsafe_allow_html=True)
     
     try:
@@ -568,17 +477,20 @@ if page == "🏠 Inicio":
 elif page == "👥 Estudiantes":
     st.markdown('<h2 class="section-header">Gestión de Estudiantes</h2>', unsafe_allow_html=True)
     
+    # Formulario para agregar/editar estudiantes
     with st.form("student_form", clear_on_submit=True):
         col1, col2 = st.columns(2)
         
         with col1:
             if st.session_state.edit_mode and st.session_state.editing_student:
+                # Modo edición
                 student_name = st.text_input(
                     "Nombre completo del estudiante:",
                     value=st.session_state.editing_student['nombre'],
                     key="edit_student_name"
                 )
             else:
+                # Modo agregar
                 student_name = st.text_input("Nombre completo del estudiante:", key="student_name")
         
         with col2:
@@ -610,13 +522,16 @@ elif page == "👥 Estudiantes":
                 student_name = student_name.strip().upper()
                 
                 if st.session_state.edit_mode:
+                    # MODO EDICIÓN
                     old_name = st.session_state.editing_student['nombre']
                     old_id = st.session_state.editing_student['id']
                     
+                    # Verificar si el nuevo nombre ya existe (excluyendo el actual)
                     existing_names = [s['nombre'].upper() for s in st.session_state.students if s['nombre'] != old_name]
                     if student_name.upper() in existing_names:
                         st.error("❌ Ya existe otro estudiante con ese nombre.")
                     else:
+                        # Actualizar el estudiante
                         now_ecuador = get_now_ecuador()
                         for student in st.session_state.students:
                             if student['nombre'] == old_name:
@@ -625,16 +540,17 @@ elif page == "👥 Estudiantes":
                                 student['fecha_actualizacion'] = now_ecuador.strftime('%Y-%m-%d %H:%M:%S')
                                 break
                         
+                        # Actualizar registros de limpieza
                         update_cleaning_records_after_edit(old_name, student_name)
                         
                         if save_data(st.session_state.students, "students.json") and save_data(st.session_state.cleaning_history, "cleaning_history.json"):
                             st.success("✅ Estudiante actualizado exitosamente!")
                             st.session_state.edit_mode = False
                             st.session_state.editing_student = None
-                            st.rerun()
                         else:
                             st.error("❌ Error al guardar los cambios.")
                 else:
+                    # MODO AGREGAR
                     existing_students = [s['nombre'].upper() for s in st.session_state.students]
                     if student_name.upper() in existing_students:
                         st.error("❌ Este estudiante ya está registrado.")
@@ -648,19 +564,22 @@ elif page == "👥 Estudiantes":
                         st.session_state.students.append(new_student)
                         if save_data(st.session_state.students, "students.json"):
                             st.success("✅ Estudiante registrado exitosamente!")
-                            st.rerun()
                         else:
                             st.error("❌ Error al guardar el estudiante.")
             else:
                 st.error("❌ Por favor ingresa un nombre válido.")
     
+    # Lista de estudiantes registrados
     st.markdown('<h2 class="section-header">Lista de Estudiantes</h2>', unsafe_allow_html=True)
     
     if st.session_state.students:
+        # Mostrar tabla de estudiantes
         students_df = pd.DataFrame(st.session_state.students)
         st.dataframe(students_df[['nombre', 'id']], use_container_width=True)
         
+        # Gestión de estudiantes (Editar/Eliminar)
         st.markdown("### Gestión de Estudiantes")
+        
         col1, col2 = st.columns(2)
         
         with col1:
@@ -686,6 +605,7 @@ elif page == "👥 Estudiantes":
                 key="delete_select"
             )
             
+            # Contar en cuántos registros de limpieza aparece
             cleaning_count = 0
             if student_to_delete:
                 cleaning_count = sum(1 for record in st.session_state.cleaning_history 
@@ -695,7 +615,9 @@ elif page == "👥 Estudiantes":
                     st.warning(f"⚠️ Este estudiante aparece en {cleaning_count} registro(s) de limpieza.")
                     st.info("💡 Al eliminar, se removerá de todos los registros de limpieza automáticamente.")
             
+            # Sistema de confirmación mejorado
             if st.session_state.confirm_delete == student_to_delete:
+                # Mostrar confirmación
                 st.error(f"⚠️ ¿Estás seguro de eliminar a **{student_to_delete}**?")
                 if cleaning_count > 0:
                     st.warning(f"Se eliminará de {cleaning_count} registro(s) de limpieza.")
@@ -703,10 +625,14 @@ elif page == "👥 Estudiantes":
                 col_a, col_b = st.columns(2)
                 with col_a:
                     if st.button("✅ Sí, eliminar", key="confirm_yes", type="primary"):
+                        # Eliminar estudiante de la lista
                         st.session_state.students = [s for s in st.session_state.students 
                                                    if s['nombre'] != student_to_delete]
+                        
+                        # Actualizar registros de limpieza
                         st.session_state.cleaning_history = update_cleaning_records_after_deletion(student_to_delete)
                         
+                        # Guardar cambios
                         if save_data(st.session_state.students, "students.json") and \
                            save_data(st.session_state.cleaning_history, "cleaning_history.json"):
                             st.session_state.confirm_delete = None
@@ -723,6 +649,7 @@ elif page == "👥 Estudiantes":
                         st.session_state.confirm_delete = None
                         st.rerun()
             else:
+                # Botón inicial de eliminación
                 if st.button("🗑️ Eliminar Estudiante", type="secondary", key="delete_button"):
                     st.session_state.confirm_delete = student_to_delete
                     st.rerun()
@@ -737,6 +664,7 @@ elif page == "📝 Limpieza":
     with st.form("cleaning_form", clear_on_submit=True):
         col1, col2 = st.columns(2)
         with col1:
+            # Usar fecha de Ecuador como valor predeterminado
             today_ecuador = get_today_ecuador()
             cleaning_date = st.date_input(
                 "Fecha de limpieza:", 
@@ -775,7 +703,6 @@ elif page == "📝 Limpieza":
                     if save_data(st.session_state.cleaning_history, "cleaning_history.json"):
                         st.success("✅ Limpieza registrada exitosamente!")
                         st.balloons()
-                        st.rerun()
                     else:
                         st.error("❌ Error al guardar el registro de limpieza.")
 
@@ -829,7 +756,7 @@ elif page == "📊 Reportes":
         st.subheader("Generar Reporte PDF")
         
         if not PDF_AVAILABLE:
-            st.error("reportlab no está instalado")
+            st.error("reportlab no está instalado. Ejecuta: pip install reportlab")
         else:
             if st.button("📥 Descargar Reporte Semanal"):
                 try:
@@ -847,6 +774,7 @@ elif page == "📊 Reportes":
                             
                             st.success("✅ PDF generado exitosamente!")
                             
+                            # Botón de descarga
                             today_ecuador = get_today_ecuador()
                             st.download_button(
                                 label="📄 Descargar PDF",
