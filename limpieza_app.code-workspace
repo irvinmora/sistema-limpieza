@@ -1,0 +1,16 @@
+{
+	"folders": [
+		{
+			"path": "../../../Desktop/limpieza_app"
+		},
+		{
+			"path": "../../../../../xampp/htdocs/Warrior_web"
+		},
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"liveServer.settings.multiRootWorkspaceName": "tienda_gym"
+	}
+}
