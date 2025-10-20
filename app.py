@@ -338,39 +338,103 @@ def generate_pdf_report(records, week_dates):
         return None
 
 # FUNCIONES PARA MANEJO DE DATOS
+def get_data_dir():
+    """Determina y crea el directorio de datos apropiado"""
+    # Primero intenta usar el directorio /data si existe (para Hugging Face Spaces)
+    if os.path.exists("/data") and os.access("/data", os.W_OK):
+        data_dir = "/data"
+    else:
+        # Si no, usa el directorio local data/
+        data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
+    
+    # Crear el directorio si no existe
+    os.makedirs(data_dir, exist_ok=True)
+    return data_dir
+
 def load_data(filename):
+    """Carga datos desde un archivo JSON"""
     try:
-        filepath = f"data/{filename}"
-        if not os.path.exists(filepath) or os.path.getsize(filepath) == 0:
+        data_dir = get_data_dir()
+        filepath = os.path.join(data_dir, filename)
+        
+        # Si el archivo no existe, crear uno vacío
+        if not os.path.exists(filepath):
+            with open(filepath, "w", encoding="utf-8") as f:
+                json.dump([], f, ensure_ascii=False, indent=2)
             return []
+        
+        # Leer el archivo existente
         with open(filepath, "r", encoding="utf-8") as f:
             content = f.read().strip()
-            return json.loads(content) if content else []
-    except:
+            if not content:
+                return []
+            data = json.loads(content)
+            return data if isinstance(data, list) else []
+    except Exception as e:
+        print(f"Error al cargar {filename}: {str(e)}")
         return []
 
 def save_data(data, filename):
+    """Guarda datos en un archivo JSON"""
     try:
-        os.makedirs("data", exist_ok=True)
-        with open(f"data/{filename}", "w", encoding="utf-8") as f:
+        data_dir = get_data_dir()
+        filepath = os.path.join(data_dir, filename)
+        
+        # Crear directorio temporal para escritura segura
+        temp_path = filepath + ".tmp"
+        
+        # Guardar primero en archivo temporal
+        with open(temp_path, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
+            f.flush()
+            os.fsync(f.fileno())
+        
+        # Renombrar el archivo temporal al nombre final
+        os.replace(temp_path, filepath)
+        
+        # Verificar que los datos se guardaron correctamente
+        with open(filepath, "r", encoding="utf-8") as f:
+            saved_data = json.load(f)
+            if len(saved_data) != len(data):
+                print(f"Error: Verificación de datos fallida para {filename}")
+                return False
+        
         return True
-    except:
+    except Exception as e:
+        print(f"Error al guardar {filename}: {str(e)}")
         return False
 
 def initialize_session_state():
-    if 'students' not in st.session_state:
-        st.session_state.students = load_data("students.json")
-    if 'cleaning_history' not in st.session_state:
-        st.session_state.cleaning_history = load_data("cleaning_history.json")
-    # Estado para edición
-    if 'editing_student' not in st.session_state:
+    """Inicializa el estado de la sesión y asegura la persistencia de datos"""
+    # Inicializar datos principales
+    if 'initialized' not in st.session_state:
+        # Primera carga - intentar cargar datos existentes
+        students_data = load_data("students.json")
+        cleaning_data = load_data("cleaning_history.json")
+        
+        # Configurar el estado inicial
+        st.session_state.students = students_data
+        st.session_state.cleaning_history = cleaning_data
         st.session_state.editing_student = None
-    if 'edit_mode' not in st.session_state:
         st.session_state.edit_mode = False
-    # Estado para confirmación de eliminación
-    if 'confirm_delete' not in st.session_state:
         st.session_state.confirm_delete = None
+        st.session_state.initialized = True
+        
+        # Guardar datos iniciales para asegurar que los archivos existan
+        save_data(students_data, "students.json")
+        save_data(cleaning_data, "cleaning_history.json")
+    else:
+        # En recargas posteriores, verificar la integridad de los datos
+        if 'students' not in st.session_state:
+            st.session_state.students = load_data("students.json")
+        if 'cleaning_history' not in st.session_state:
+            st.session_state.cleaning_history = load_data("cleaning_history.json")
+        if 'editing_student' not in st.session_state:
+            st.session_state.editing_student = None
+        if 'edit_mode' not in st.session_state:
+            st.session_state.edit_mode = False
+        if 'confirm_delete' not in st.session_state:
+            st.session_state.confirm_delete = None
 
 def get_current_week_dates():
     """Obtiene las fechas de la semana actual en zona horaria de Ecuador"""
@@ -409,6 +473,25 @@ st.markdown('<h1 class="main-header">🧹 Sistema de Registro de Limpieza</h1>',
 # Mostrar fecha actual de Ecuador
 today_ecuador = get_today_ecuador()
 st.info(f"📅 Fecha actual: {today_ecuador.strftime('%d/%m/%Y')} - Hora de Ecuador")
+
+# Verificar el estado del almacenamiento
+data_dir = get_data_dir()
+if os.access(data_dir, os.W_OK):
+    students_file = os.path.join(data_dir, "students.json")
+    cleaning_file = os.path.join(data_dir, "cleaning_history.json")
+    
+    storage_status = f"""
+    📁 Directorio de datos: {data_dir}
+    📊 Estudiantes registrados: {len(st.session_state.students)}
+    📝 Registros de limpieza: {len(st.session_state.cleaning_history)}
+    """
+    
+    # Verificar si podemos escribir en los archivos
+    can_write_students = os.access(students_file, os.W_OK) if os.path.exists(students_file) else os.access(data_dir, os.W_OK)
+    can_write_cleaning = os.access(cleaning_file, os.W_OK) if os.path.exists(cleaning_file) else os.access(data_dir, os.W_OK)
+    
+    if not can_write_students or not can_write_cleaning:
+        st.warning("⚠️ Advertencia: No se pueden guardar los datos permanentemente en este entorno.")
 
 # Sidebar para navegación
 with st.sidebar:
